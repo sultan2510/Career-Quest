@@ -11,6 +11,11 @@ def test_simulation_draft_is_accepted_with_existing_ikigai_answers():
         "interests": {"R1": 4},
         "statedInterests": "Public service",
         "skillsAndProjects": "Built a school website",
+        "mentorMessages": [
+            {"id": "q1", "at": "2026-10-10T10:02:00Z", "role": "you", "text": "Which career?"},
+            {"id": "a1", "at": "2026-10-10T10:03:00Z", "role": "yuki", "text": "Try design.",
+             "sources": [{"n": 1, "title": "O*NET", "excerpt": "Design work"}]},
+        ],
         "simulationDrafts": {
             "design": {
                 "run_id": "run-1",
@@ -32,6 +37,7 @@ def test_simulation_draft_is_accepted_with_existing_ikigai_answers():
     assert validated.country == "PK"
     assert validated.interests["R1"] == 4
     assert validated.simulationDrafts["design"].decision_log[0].user_choice == "Talk to students"
+    assert validated.mentorMessages[1].sources[0].title == "O*NET"
 
 
 def test_simulation_draft_rejects_invalid_rating_and_mismatched_career():

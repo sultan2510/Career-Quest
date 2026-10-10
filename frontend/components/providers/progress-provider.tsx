@@ -4,7 +4,7 @@ import { loadProgress, saveProgress } from '@/lib/storage';
 import { createSaveQueue } from '@/lib/save-queue';
 import { stageOf } from '@/lib/dna';
 import { computeBadges, computeXp, levelInfo, rankCareers, traitValues, type Badge, type Ranked } from '@/lib/scoring';
-import { emptyProgress, type Evidence, type JournalEntry, type Progress, type Trait } from '@/lib/types';
+import { emptyProgress, type Evidence, type JournalEntry, type MentorMessage, type Progress, type Trait } from '@/lib/types';
 import { advanceSimulation, finishSimulation, recordSimulationDecision } from '@/lib/simulation-progress';
 import type { Decision } from '@/lib/types';
 
@@ -15,6 +15,7 @@ type Action =
   | { type: 'toggleTask'; careerId: string; taskId: string }
   | { type: 'journalAdd'; entry: JournalEntry }
   | { type: 'journalRemove'; id: string }
+  | { type: 'mentorMessage'; message: MentorMessage }
   | { type: 'planCareer'; careerId: string }
   | { type: 'explored'; careerId: string }
   | { type: 'dnaAnswer'; id: string; option: string }
@@ -42,6 +43,7 @@ function reducer(state: Progress, action: Action): Progress {
     }
     case 'journalAdd': return { ...state, journal: [action.entry, ...state.journal] };
     case 'journalRemove': return { ...state, journal: state.journal.filter(e => e.id !== action.id) };
+    case 'mentorMessage': return { ...state, mentorMessages: [...state.mentorMessages, action.message].slice(-30) };
     case 'planCareer': return { ...state, planCareer: action.careerId };
     case 'explored': return state.explored.includes(action.careerId) ? state : { ...state, explored: [...state.explored, action.careerId] };
     case 'dnaAnswer': return { ...state, dna: { ...state.dna, answers: { ...state.dna.answers, [action.id]: action.option } } };

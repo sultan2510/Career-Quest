@@ -89,6 +89,14 @@ export type Evidence = {
 
 export type JournalEntry = { id: string; at: string; prompt: string; text: string };
 
+export type MentorMessage = {
+  id: string;
+  at: string;
+  role: 'you' | 'yuki';
+  text: string;
+  sources?: { n: number; title: string; excerpt: string }[];
+};
+
 export type Progress = {
   v: 1;
   character: number | null;
@@ -96,6 +104,7 @@ export type Progress = {
   simulationDrafts: Record<string, SimulationDraft>;
   tasks: Record<string, string[]>;
   journal: JournalEntry[];
+  mentorMessages: MentorMessage[];
   planCareer: string | null;
   explored: string[];
   dna: DnaState;
@@ -112,6 +121,7 @@ export const emptyProgress = (): Progress => ({
   simulationDrafts: {},
   tasks: {},
   journal: [],
+  mentorMessages: [],
   planCareer: null,
   explored: [],
   dna: { answers: {}, tie: null, recon: null },

@@ -204,3 +204,22 @@ test('changing a saved simulation choice replaces it and removes later dependent
   assert.deepEqual(Array.from(progress.simulationDrafts.data.decision_log, item => item.user_choice), ['Changed']);
   assert.equal(progress.simulationDrafts.data.run_id, 'run-2');
 });
+
+test('mentor conversation loads from the same account progress record', async () => {
+  let saved = { v: 1 };
+  const load = client(async (_url, init) => {
+    if (init.method === 'PUT') saved = JSON.parse(init.body);
+    return response(saved);
+  });
+  const { emptyProgress } = load('lib/types.ts');
+  const { loadProgress, saveProgress } = load('lib/storage.ts');
+  const progress = emptyProgress();
+  progress.mentorMessages = [
+    { id: 'q1', at: '2026-10-10T10:00:00Z', role: 'you', text: 'What matches my interests?' },
+    { id: 'a1', at: '2026-10-10T10:00:01Z', role: 'yuki', text: 'Try a design project.', sources: [{ n: 1, title: 'O*NET', excerpt: 'Design work' }] },
+  ];
+  await saveProgress('signed-in-user', progress);
+  const restored = await loadProgress('signed-in-user');
+  assert.equal(restored.mentorMessages[1].text, 'Try a design project.');
+  assert.equal(restored.mentorMessages[1].sources[0].title, 'O*NET');
+});

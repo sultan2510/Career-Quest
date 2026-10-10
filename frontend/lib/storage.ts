@@ -22,6 +22,7 @@ const merge = (saved: Partial<Progress> | null): Progress => ({
   ...(saved && saved.v === 1 ? saved : {}),
   interests: saved?.interests ?? {},
   simulationDrafts: saved?.simulationDrafts ?? {},
+  mentorMessages: saved?.mentorMessages ?? [],
 });
 
 // Guest progress lives in this browser only.

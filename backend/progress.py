@@ -60,6 +60,20 @@ class JournalSnapshot(SnapshotModel):
     text: str = Field(max_length=6000)
 
 
+class MentorSourceSnapshot(SnapshotModel):
+    n: int = Field(ge=1, le=100)
+    title: str = Field(max_length=200)
+    excerpt: str = Field(max_length=600)
+
+
+class MentorMessageSnapshot(SnapshotModel):
+    id: ShortId
+    at: str = Field(max_length=100)
+    role: Literal["you", "yuki"]
+    text: str = Field(max_length=4000)
+    sources: list[MentorSourceSnapshot] = Field(default_factory=list, max_length=6)
+
+
 class DnaSnapshot(SnapshotModel):
     answers: dict[ShortId, Annotated[str, Field(max_length=32)]] = Field(default_factory=dict)
     tie: Literal["logical", "spatial", "verbal", "inter", "intra", "bodily", "musical", "naturalistic",
@@ -82,6 +96,7 @@ class ProgressSnapshot(SnapshotModel):
     simulationDrafts: dict[ShortId, SimulationDraftSnapshot] = Field(default_factory=dict)
     tasks: dict[ShortId, list[ShortId]] = Field(default_factory=dict)
     journal: list[JournalSnapshot] = Field(default_factory=list, max_length=5000)
+    mentorMessages: list[MentorMessageSnapshot] = Field(default_factory=list, max_length=30)
     planCareer: str | None = Field(default=None, max_length=128)
     explored: list[ShortId] = Field(default_factory=list, max_length=100)
     dna: DnaSnapshot = Field(default_factory=DnaSnapshot)
