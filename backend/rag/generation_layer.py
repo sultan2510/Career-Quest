@@ -58,7 +58,7 @@ class GenerationLayer:
 
     def load_model(self) -> None:
         self.model_config = {"model": self.model, "timeout_seconds": self.timeout,
-                             "configured": bool(self.provider or self.api_key)}
+                             "configured": bool(self.provider or self.api_key or self.groq_api_key)}
 
     def generate(self, response_type: ResponseType, query: str, context: str, user_profile: Optional[Dict[str, Any]] = None, max_tokens: int = 700, temperature: float = 0.3, **kwargs) -> GenerationResponse:
         try:
