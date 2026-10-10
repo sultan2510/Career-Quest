@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Brain, MessageCircle, BookOpen, Check, ChevronRight, Compass, HelpCircle, Home, Lightbulb, Menu, Palette, Play, Route, ShieldCheck, SlidersHorizontal, Sprout, Star, Target, X } from 'lucide-react';
+import { ArrowRight, Brain, ChartNoAxesCombined, Heart, MessageCircle, BookOpen, Check, ChevronRight, Compass, HelpCircle, Home, Lightbulb, Menu, Palette, Play, Route, ShieldCheck, SlidersHorizontal, Sprout, Star, Target, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -13,6 +13,8 @@ import { ReflectionView } from '@/components/quest/views/reflection';
 import { RoadmapView } from '@/components/quest/views/roadmap';
 import { ProfileView } from '@/components/quest/views/profile';
 import { ProfilerView } from '@/components/quest/views/profiler';
+import { InterestsView } from '@/components/quest/views/interests';
+import { IkigaiView } from '@/components/quest/views/ikigai';
 import { MentorView } from '@/components/quest/views/mentor';
 import { References } from '@/components/quest/references';
 import { careerById } from '@/lib/data/careers';
@@ -27,6 +29,8 @@ const NAV = [
   { id: 'reflection', label: 'My reflections', icon: BookOpen },
   { id: 'plan', label: 'My roadmap', icon: Route },
   { id: 'profiler', label: 'Learning DNA', icon: Brain },
+  { id: 'interests', label: 'My interests', icon: Heart },
+  { id: 'ikigai', label: 'Ikigai map', icon: ChartNoAxesCombined },
   { id: 'mentor', label: 'Ask Yuki (AI)', icon: MessageCircle },
   { id: 'profile', label: 'Profile & badges', icon: Star },
 ] as const;
@@ -38,6 +42,8 @@ const HEADINGS: Record<View, [string, string]> = {
   reflection: ['Your path is taking shape.', 'Real experiences reveal more than a first impression.'],
   plan: ['Small steps. Meaningful possibilities.', 'Turn a little curiosity into your next 30 days.'],
   profiler: ['Discover how you think.', 'Branching stories reveal your strengths. Follow-ups adapt to you.'],
+  interests: ['Discover what you enjoy.', 'Rate the activities that sound energizing to you.'],
+  ikigai: ['Explore your Ikigai map.', 'See where your interests, strengths, demand and pay overlap.'],
   mentor: ['Ask Yuki anything.', 'Answers grounded in the research behind your profile.'],
   profile: ['Your quest, your pace.', 'Badges, character, and everything you’ve saved.'],
 };
@@ -120,6 +126,8 @@ export function AppShell() {
             {view === 'reflection' && <ReflectionView />}
             {view === 'plan' && <RoadmapView />}
             {view === 'profile' && <ProfileView />}
+            {view === 'interests' && <InterestsView />}
+            {view === 'ikigai' && <IkigaiView />}
             {view === 'mentor' && <MentorView />}
           </div>
           <References />
@@ -134,10 +142,12 @@ export function AppShell() {
           </DialogHeader>
           {modal === 'palette' && <><div className="palette-grid">{[['Deep teal', '#277E75', 'bg-primary'], ['Soft mint', '#E2F4E9', 'bg-mint'], ['Peach coral', '#FCE7DE', 'bg-coral'], ['Sunshine', '#FFF0BE', 'bg-yellow'], ['Soft lilac', '#EEE6F6', 'bg-lilac']].map(([n, c, t]) => <div key={n}><div className={`swatch ${t}`} /><div className="swatch-label">{n}</div><div className="swatch-code">{c}</div></div>)}</div><p className="text-sm text-muted-foreground leading-7">Teal anchors your journey. Mint feels open and calm; coral, sunshine, and lilac give each character personality. Manrope headings and DM Sans body text keep it friendly and readable.</p></>}
           {modal === 'methodology' && <div className="space-y-4 text-sm leading-7">
-            <p><strong>Self-reported evidence.</strong> Character choice, enjoyment, and confidence are your reflections, not validated psychological or skill assessments.</p>
-            <p><strong>How scores work.</strong> Your character sets six starting preference traits. “What you love” starts from how well those traits match a career, then moves with enjoyment ratings. “What you’re good at” starts near neutral and moves with confidence and the quality of your choices. “World needs” and “economic opportunity” are fixed illustrative values. Overall fit = 35% love + 25% good at + 20% needs + 20% opportunity.</p>
-            <p><strong>Cross-career transfer.</strong> Enjoying one simulation nudges careers that share themes, by a small amount.</p>
-            <p><strong>Career information.</strong> Summaries and scenarios are hand-written for this prototype, not live O*NET data. Verify tasks and requirements with <a href="https://www.onetonline.org/" target="_blank" rel="noreferrer" className="text-primary underline">O*NET OnLine</a> and local career services. Free-text answers aren’t scored.</p>
+            <p><strong>Explore careers.</strong> The existing character and simulation preference ranking is exploratory and separate from the Ikigai map. It no longer uses hand-entered market or pay values.</p>
+            <p><strong>Ikigai evidence.</strong> Love combines the original 18-item RIASEC screening set with enjoyment feedback. Good at combines Learning DNA answers with O*NET 31.0 occupational requirements and simulation confidence. This short screener and the Learning DNA crosswalk are modelling assumptions, not validated career assessments.</p>
+            <p><strong>Market and pay.</strong> US needs uses BLS 2025–35 projected growth and annual openings; paid uses BLS 2025 median annual wage. Pakistan uses ILOSTAT 2021–25 employment change and 2025 employment level by broad ISCO-08 group; pay uses 2025 major-group median hourly PKR. Broad Pakistani groups repeat across several careers. These are employment estimates, not posting counts or vacancies.</p>
+            <p><strong>Cost context.</strong> Numbeo's 2026 Mid-Year Cost of Living Plus Rent Index is shown by country. It does not change within-country career ranks and is not a purchasing-power conversion.</p>
+            <p><strong>Missing evidence.</strong> Unanswered personal sections remain unavailable. An overall four-circle score appears only when all four circles have evidence. Notes about grades, projects and social impact are not numerically scored until validated data can support them.</p>
+            <p>Read the <a href="https://www.onetcenter.org/database.html" target="_blank" rel="noreferrer" className="text-primary underline">O*NET data</a>, <a href="https://www.bls.gov/emp/tables/occupational-separations-and-openings.htm" target="_blank" rel="noreferrer" className="text-primary underline">BLS projections</a>, <a href="https://ilostat.ilo.org/data/" target="_blank" rel="noreferrer" className="text-primary underline">ILOSTAT</a> and <a href="https://www.onetcenter.org/reports/IP_RVS.html" target="_blank" rel="noreferrer" className="text-primary underline">Interest Profiler research</a>.</p>
           </div>}
           {modal === 'help' && <div className="space-y-4"><div className="sensei-top"><div className="owl"><Owl /></div><div><h3>Yuki · Your discovery sensei</h3><p>Small steps are still steps.</p></div></div><p className="text-sm text-muted-foreground leading-7">“Choose the character you relate to today. Explore your Learning DNA, try a day in a career, and notice how the work feels. You’re allowed to change your mind.”</p><Button onClick={() => { setModal(null); go('profiler'); }}>Start the Learning DNA profiler <ArrowRight /></Button></div>}
           {modal === 'privacy' && <p className="text-sm text-muted-foreground leading-7">Your character, profile answers, ratings, journal, and progress are saved to your account so they follow you across devices. In guest mode they stay in this browser only. You can export, reset, or delete everything from Profile.</p>}

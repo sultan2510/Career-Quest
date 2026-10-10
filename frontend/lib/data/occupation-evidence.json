@@ -1,0 +1,486 @@
+{
+  "onet_release": "31.0",
+  "bls_wage_year": 2025,
+  "bls_projection": "2025-2035",
+  "ilo_years": [
+    2021,
+    2025
+  ],
+  "pk_earnings_major_groups_2025": {
+    "1": 171.591,
+    "2": 197.841,
+    "3": 184.269,
+    "4": 127.352,
+    "5": 129.045,
+    "6": 125.706,
+    "7": 128.472,
+    "8": 119.908,
+    "9": 124.904
+  },
+  "sources": {
+    "onet": "https://www.onetcenter.org/database.html",
+    "bls_employment": "https://www.bls.gov/emp/tables/occupational-separations-and-openings.htm",
+    "bls_wages": "https://www.bls.gov/oes/tables.htm",
+    "ilo_employment": "https://rplumber.ilo.org/data/indicator?id=EMP_TEMP_SEX_OC2_NB&ref_area=PAK",
+    "ilo_earnings": "https://rplumber.ilo.org/data/indicator?id=EAR_EHRM_SEX_OCU_CUR_NB&ref_area=PAK"
+  },
+  "numbeo_context": {
+    "period": "2026 Mid-Year",
+    "index": {
+      "US": 54.8,
+      "PK": 12.4
+    },
+    "source": "https://www.numbeo.com/cost-of-living/rankings_by_country.jsp?displayColumn=2",
+    "note": "Cost of Living Plus Rent Index; context only, not used in within-country career ranking"
+  },
+  "occupations": {
+    "design": {
+      "soc": "15-1255.00",
+      "title": "Web and Digital Interface Designers",
+      "description": "Design digital user interfaces or websites. Develop and test layouts, interfaces, functionality, and navigation menus to ensure compatibility and usability across browsers or devices. May use web framework applications as well as client-side code and processes. May evaluate web design following web and accessibility standards, and may analyze web use metrics and optimize websites for marketability and search engine ranking. May design and test interfaces that facilitate the human-computer interaction and maximize the usability of digital devices, websites, and software with a focus on aesthetics and design. May create graphics used in websites and manage website content and links.",
+      "interests": {
+        "Realistic": 2.59,
+        "Investigative": 4.88,
+        "Artistic": 4.48,
+        "Social": 2.2,
+        "Enterprising": 3.13,
+        "Conventional": 4.4
+      },
+      "requirements": {
+        "logical": 0.345,
+        "spatial": 0.2175,
+        "verbal": 0.6258,
+        "inter": 0.4592,
+        "intra": 0.6958,
+        "bodily": 0.2292,
+        "musical": 0.1425,
+        "naturalistic": 0.0713,
+        "existential": 0.005,
+        "fluid": 0.5517,
+        "learning": 0.5,
+        "adapt": 0.8039,
+        "creative": 0.5787
+      },
+      "keywords": [
+        "Computers and Electronics",
+        "English Language",
+        "Reading Comprehension",
+        "Customer and Personal Service",
+        "Critical Thinking",
+        "Judgment and Decision Making",
+        "Active Listening",
+        "Active Learning",
+        "Complex Problem Solving",
+        "Programming",
+        "Writing",
+        "Speaking"
+      ],
+      "us": {
+        "soc": "15-1255",
+        "median_annual_usd": 104000,
+        "growth_pct": 6.0,
+        "annual_openings": 8300,
+        "employment_thousands": 132.7,
+        "page": "https://www.bls.gov/ooh/computer-and-information-technology/web-developers.htm"
+      },
+      "pk": {
+        "isco2_proxy": "25",
+        "employment_thousands_2025": 220.844,
+        "employment_thousands_2021": 111.867,
+        "median_hourly_pkr_2025_major_group": 197.841
+      }
+    },
+    "data": {
+      "soc": "15-2051.00",
+      "title": "Data Scientists",
+      "description": "Develop and implement a set of techniques or analytics applications to transform raw data into meaningful information using data-oriented programming languages and visualization software. Apply data mining, data modeling, natural language processing, and machine learning to extract and analyze information from large structured and unstructured datasets. Visualize, interpret, and report data findings. May create dynamic data reports.",
+      "interests": {
+        "Realistic": 2.17,
+        "Investigative": 6.98,
+        "Artistic": 2.61,
+        "Social": 1.66,
+        "Enterprising": 1.71,
+        "Conventional": 5.39
+      },
+      "requirements": {
+        "logical": 0.76,
+        "spatial": 0.2338,
+        "verbal": 0.7083,
+        "inter": 0.4383,
+        "intra": 0.69,
+        "bodily": 0.1558,
+        "musical": 0.0775,
+        "naturalistic": 0.1,
+        "existential": 0.1,
+        "fluid": 0.7708,
+        "learning": 0.5463,
+        "adapt": 0.8144,
+        "creative": 0.5625
+      },
+      "keywords": [
+        "Mathematics",
+        "Mathematics",
+        "Critical Thinking",
+        "Computers and Electronics",
+        "Reading Comprehension",
+        "Complex Problem Solving",
+        "Programming",
+        "Speaking",
+        "Active Learning",
+        "Active Listening",
+        "Writing",
+        "Judgment and Decision Making"
+      ],
+      "us": {
+        "soc": "15-2051",
+        "median_annual_usd": 120230,
+        "growth_pct": 34.6,
+        "annual_openings": 24800,
+        "employment_thousands": 275.6,
+        "page": "https://www.bls.gov/ooh/math/data-scientists.htm"
+      },
+      "pk": {
+        "isco2_proxy": "25",
+        "employment_thousands_2025": 220.844,
+        "employment_thousands_2021": 111.867,
+        "median_hourly_pkr_2025_major_group": 197.841
+      }
+    },
+    "environment": {
+      "soc": "19-2041.00",
+      "title": "Environmental Scientists and Specialists, Including Health",
+      "description": "Conduct research or perform investigation for the purpose of identifying, abating, or eliminating sources of pollutants or hazards that affect either the environment or public health. Using knowledge of various scientific disciplines, may collect, synthesize, study, report, and recommend action based on data derived from measurements or observations of air, food, soil, water, and other sources.",
+      "interests": {
+        "Realistic": 4.76,
+        "Investigative": 7.0,
+        "Artistic": 1.87,
+        "Social": 2.75,
+        "Enterprising": 2.56,
+        "Conventional": 4.32
+      },
+      "requirements": {
+        "logical": 0.5308,
+        "spatial": 0.2975,
+        "verbal": 0.76,
+        "inter": 0.5617,
+        "intra": 0.7442,
+        "bodily": 0.1983,
+        "musical": 0.1425,
+        "naturalistic": 0.595,
+        "existential": 0.04,
+        "fluid": 0.75,
+        "learning": 0.625,
+        "adapt": 0.7872,
+        "creative": 0.53
+      },
+      "keywords": [
+        "English Language",
+        "Reading Comprehension",
+        "Active Listening",
+        "Writing",
+        "Speaking",
+        "Science",
+        "Complex Problem Solving",
+        "Critical Thinking",
+        "Biology",
+        "Active Learning",
+        "Customer and Personal Service",
+        "Monitoring"
+      ],
+      "us": {
+        "soc": "19-2041",
+        "median_annual_usd": 82220,
+        "growth_pct": 6.1,
+        "annual_openings": 7300,
+        "employment_thousands": 93.4,
+        "page": "https://www.bls.gov/ooh/life-physical-and-social-science/environmental-scientists-and-specialists.htm"
+      },
+      "pk": {
+        "isco2_proxy": "21",
+        "employment_thousands_2025": 148.953,
+        "employment_thousands_2021": 155.217,
+        "median_hourly_pkr_2025_major_group": 197.841
+      }
+    },
+    "software": {
+      "soc": "15-1252.00",
+      "title": "Software Developers",
+      "description": "Research, design, and develop computer and network software or specialized utility programs. Analyze user needs and develop software solutions, applying principles and techniques of computer science, engineering, and mathematical analysis. Update software or enhance existing software capabilities. May work with computer hardware engineers to integrate hardware and software systems, and develop specifications and performance requirements. May maintain databases within an application area, working individually or coordinating database development as part of a team.",
+      "interests": {
+        "Realistic": 3.61,
+        "Investigative": 6.05,
+        "Artistic": 2.37,
+        "Social": 1.81,
+        "Enterprising": 1.87,
+        "Conventional": 5.62
+      },
+      "requirements": {
+        "logical": 0.4275,
+        "spatial": 0.1725,
+        "verbal": 0.6667,
+        "inter": 0.48,
+        "intra": 0.6908,
+        "bodily": 0.1558,
+        "musical": 0.0938,
+        "naturalistic": 0.0512,
+        "existential": 0.04,
+        "fluid": 0.6458,
+        "learning": 0.515,
+        "adapt": 0.81,
+        "creative": 0.5463
+      },
+      "keywords": [
+        "Computers and Electronics",
+        "Programming",
+        "Critical Thinking",
+        "Judgment and Decision Making",
+        "Mathematics",
+        "Customer and Personal Service",
+        "Reading Comprehension",
+        "Active Learning",
+        "Systems Analysis",
+        "Active Listening",
+        "Complex Problem Solving",
+        "Technology Design"
+      ],
+      "us": {
+        "soc": "15-1252",
+        "median_annual_usd": 135980,
+        "growth_pct": 10.2,
+        "annual_openings": 95300,
+        "employment_thousands": 1717.8,
+        "page": "https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm"
+      },
+      "pk": {
+        "isco2_proxy": "25",
+        "employment_thousands_2025": 220.844,
+        "employment_thousands_2021": 111.867,
+        "median_hourly_pkr_2025_major_group": 197.841
+      }
+    },
+    "education": {
+      "soc": "25-2031.00",
+      "title": "Secondary School Teachers, Except Special and Career/Technical Education",
+      "description": "Teach one or more subjects to students at the secondary school level.",
+      "interests": {
+        "Realistic": 2.73,
+        "Investigative": 3.19,
+        "Artistic": 3.77,
+        "Social": 7.0,
+        "Enterprising": 2.9,
+        "Conventional": 3.61
+      },
+      "requirements": {
+        "logical": 0.4692,
+        "spatial": 0.25,
+        "verbal": 0.76,
+        "inter": 0.6358,
+        "intra": 0.8058,
+        "bodily": 0.0617,
+        "musical": 0.2662,
+        "naturalistic": 0.365,
+        "existential": 0.3925,
+        "fluid": 0.6567,
+        "learning": 0.7188,
+        "adapt": 0.8161,
+        "creative": 0.61
+      },
+      "keywords": [
+        "Education and Training",
+        "English Language",
+        "Instructing",
+        "Reading Comprehension",
+        "Active Listening",
+        "Speaking",
+        "Learning Strategies",
+        "Customer and Personal Service",
+        "Critical Thinking",
+        "Monitoring",
+        "Social Perceptiveness",
+        "Active Learning"
+      ],
+      "us": {
+        "soc": "25-2031",
+        "median_annual_usd": 72040,
+        "growth_pct": -0.2,
+        "annual_openings": 63500,
+        "employment_thousands": 1087.5,
+        "page": "https://www.bls.gov/ooh/education-training-and-library/high-school-teachers.htm"
+      },
+      "pk": {
+        "isco2_proxy": "23",
+        "employment_thousands_2025": 3007.898,
+        "employment_thousands_2021": 1950.562,
+        "median_hourly_pkr_2025_major_group": 197.841
+      }
+    },
+    "health": {
+      "soc": "29-1141.00",
+      "title": "Registered Nurses",
+      "description": "Assess patient health problems and needs, develop and implement nursing care plans, and maintain medical records. Administer nursing care to ill, injured, convalescent, or disabled patients. May advise patients on health maintenance and disease prevention or provide case management. Licensing or registration required.",
+      "interests": {
+        "Realistic": 3.46,
+        "Investigative": 4.71,
+        "Artistic": 1.34,
+        "Social": 5.57,
+        "Enterprising": 2.38,
+        "Conventional": 4.75
+      },
+      "requirements": {
+        "logical": 0.49,
+        "spatial": 0.3125,
+        "verbal": 0.7292,
+        "inter": 0.76,
+        "intra": 0.7883,
+        "bodily": 0.4575,
+        "musical": 0.1888,
+        "naturalistic": 0.2787,
+        "existential": 0.225,
+        "fluid": 0.7083,
+        "learning": 0.5938,
+        "adapt": 0.8189,
+        "creative": 0.515
+      },
+      "keywords": [
+        "Psychology",
+        "Customer and Personal Service",
+        "Medicine and Dentistry",
+        "English Language",
+        "Social Perceptiveness",
+        "Active Listening",
+        "Speaking",
+        "Critical Thinking",
+        "Coordination",
+        "Service Orientation",
+        "Reading Comprehension",
+        "Judgment and Decision Making"
+      ],
+      "us": {
+        "soc": "29-1141",
+        "median_annual_usd": 97550,
+        "growth_pct": 5.6,
+        "annual_openings": 180800,
+        "employment_thousands": 3465.4,
+        "page": "https://www.bls.gov/ooh/healthcare/registered-nurses.htm"
+      },
+      "pk": {
+        "isco2_proxy": "22",
+        "employment_thousands_2025": 427.39,
+        "employment_thousands_2021": 268.963,
+        "median_hourly_pkr_2025_major_group": 197.841
+      }
+    },
+    "product": {
+      "soc": "13-1082.00",
+      "title": "Project Management Specialists",
+      "description": "Analyze and coordinate the schedule, timeline, procurement, staffing, and budget of a product or service on a per project basis. Lead and guide the work of technical staff. May serve as a point of contact for the client or customer.",
+      "interests": {
+        "Realistic": 1.48,
+        "Investigative": 2.75,
+        "Artistic": 1.57,
+        "Social": 3.32,
+        "Enterprising": 6.3,
+        "Conventional": 5.55
+      },
+      "requirements": {
+        "logical": 0.4375,
+        "spatial": 0.235,
+        "verbal": 0.75,
+        "inter": 0.5833,
+        "intra": 0.8383,
+        "bodily": 0.1658,
+        "musical": 0.1013,
+        "naturalistic": 0.135,
+        "existential": 0.06,
+        "fluid": 0.6033,
+        "learning": 0.5625,
+        "adapt": 0.8428,
+        "creative": 0.5463
+      },
+      "keywords": [
+        "English Language",
+        "Administration and Management",
+        "Active Listening",
+        "Critical Thinking",
+        "Administrative",
+        "Writing",
+        "Monitoring",
+        "Judgment and Decision Making",
+        "Reading Comprehension",
+        "Speaking",
+        "Active Learning",
+        "Coordination"
+      ],
+      "us": {
+        "soc": "13-1082",
+        "median_annual_usd": 102320,
+        "growth_pct": 6.7,
+        "annual_openings": 76500,
+        "employment_thousands": 1094.3,
+        "page": "https://www.bls.gov/ooh/business-and-financial/project-management-specialists.htm"
+      },
+      "pk": {
+        "isco2_proxy": "24",
+        "employment_thousands_2025": 265.343,
+        "employment_thousands_2021": 224.029,
+        "median_hourly_pkr_2025_major_group": 197.841
+      }
+    },
+    "journalism": {
+      "soc": "27-3023.00",
+      "title": "News Analysts, Reporters, and Journalists",
+      "description": "Narrate or write news stories, reviews, or commentary for print, broadcast, or other communications media such as newspapers, magazines, radio, or television. May collect and analyze information through interview, investigation, or observation.",
+      "interests": {
+        "Realistic": 1.47,
+        "Investigative": 4.16,
+        "Artistic": 5.09,
+        "Social": 2.8,
+        "Enterprising": 3.95,
+        "Conventional": 3.64
+      },
+      "requirements": {
+        "logical": 0.22,
+        "spatial": 0.2963,
+        "verbal": 0.865,
+        "inter": 0.5842,
+        "intra": 0.8133,
+        "bodily": 0.1875,
+        "musical": 0.2775,
+        "naturalistic": 0.2562,
+        "existential": 0.205,
+        "fluid": 0.7075,
+        "learning": 0.5312,
+        "adapt": 0.835,
+        "creative": 0.64
+      },
+      "keywords": [
+        "English Language",
+        "Communications and Media",
+        "Active Listening",
+        "Reading Comprehension",
+        "Speaking",
+        "Critical Thinking",
+        "Writing",
+        "Active Learning",
+        "Social Perceptiveness",
+        "Time Management",
+        "Computers and Electronics",
+        "Coordination"
+      ],
+      "us": {
+        "soc": "27-3023",
+        "median_annual_usd": 62200,
+        "growth_pct": -5.9,
+        "annual_openings": 3400,
+        "employment_thousands": 47.1,
+        "page": "https://www.bls.gov/ooh/media-and-communication/reporters-correspondents-and-broadcast-news-analysts.htm"
+      },
+      "pk": {
+        "isco2_proxy": "26",
+        "employment_thousands_2025": 605.297,
+        "employment_thousands_2021": 422.032,
+        "median_hourly_pkr_2025_major_group": 197.841
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+.git
+.upstream
+.venv
+.local
+**/node_modules
+**/.next
+**/.npm-cache
+**/__pycache__
+**/.env
+**/.env.local
+.pytest_cache
+tests

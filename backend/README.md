@@ -6,6 +6,6 @@ In dev (no SMTP_HOST) verification and reset links are printed in the server con
 
 ## RAG
 1. Re-run `schema.sql` (it adds `rag_chunks` and `rate_limits`; safe to run again).
-2. `python ingest.py` (needs `DATABASE_URL` in the environment) loads `knowledge.json`, built from the questionnaire.
+2. From the repository root run `python -m backend.ingest` (needs `DATABASE_URL`). It applies the additive RAG source migration and idempotently upserts catalog and questionnaire passages without deleting existing rows.
 3. Set `ANTHROPIC_API_KEY` for generated answers. Without it the API returns the matching passages only.
 Retrieval is Postgres full-text search. To upgrade to embeddings, enable pgvector, add an `embedding` column, and rank by vector distance in `rag_ask`.

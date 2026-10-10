@@ -6,7 +6,7 @@ import { useProgress } from '@/components/providers/progress-provider';
 import { CareerCard, useNav } from '@/components/quest/common';
 import { surpriseCareer } from '@/lib/scoring';
 
-const DIMENSIONS = [['love', 'What you love'], ['goodAt', 'What you’re good at'], ['needs', 'What the world needs'], ['paid', 'Economic opportunity']] as const;
+const DIMENSIONS = [['love', 'Exploratory preference'], ['goodAt', 'Simulation confidence']] as const;
 
 export function CareersView() {
   const { ranked, traits, hasSignal, progress } = useProgress();
@@ -25,9 +25,9 @@ export function CareersView() {
     {compare && <p className="text-sm mb-3" style={{ color: 'var(--muted-foreground)' }}>Tick up to three careers to compare them side by side.</p>}
     <div className="career-grid">{ranked.map(r => <CareerCard key={r.career.id} career={r.career} score={hasSignal ? r.score.overall : null} label={r.delta ? `${r.delta > 0 ? '+' : ''}${r.delta} from simulations` : 'A possible path'} picked={picked.includes(r.career.id)} onPick={compare ? on => toggle(r.career.id, on) : undefined} />)}</div>
     {compare && shown.length > 0 && <section className="workspace mt">
-      <h2>Four sides of a possible fit</h2>
+      <h2>Explore your early signals</h2>
       <div className="career-grid">{shown.map(r => <div key={r.career.id}><h3 className="font-bold mb-5">{r.career.name}</h3>{DIMENSIONS.map(([key, label]) => <div key={key} className="mb-4"><div className="flex justify-between text-xs mb-2"><span>{label}</span><span>{r.score[key]}%</span></div><div className="progress-track"><div className="progress-fill" style={{ width: `${r.score[key]}%` }} /></div></div>)}</div>)}</div>
-      <p className="text-xs">“Good at” stays near neutral until you try the work. “Needs” and “economic opportunity” are illustrative, not forecasts.</p>
+      <p className="text-xs">These exploratory signals use character traits and simulation feedback. Open the Ikigai map for sourced occupation and labour-market evidence.</p>
     </section>}
     <section className="workspace mt">
       <div className="eyebrow"><Lightbulb size={14} />A little outside your comfort zone</div>

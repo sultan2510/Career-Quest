@@ -4,7 +4,6 @@ import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useProgress } from '@/components/providers/progress-provider';
-import { summary } from '@/lib/dna';
 import { askYuki, type RagSource } from '@/lib/rag';
 
 type Msg = { role: 'you' | 'yuki'; text: string; sources?: RagSource[] };
@@ -24,8 +23,8 @@ export function MentorView() {
     if (!question || busy) return;
     setMsgs(m => [...m, { role: 'you', text: question }]); setQ(''); setBusy(true);
     try {
-      const r = await askYuki(question, summary(progress.dna));
-      const text = r.answer ?? (r.status === 'not_configured' ? 'The AI key isn’t set up on the server yet, so here are the closest passages I found.' : 'I couldn’t find that in the research behind your profile. Try rephrasing.');
+      const r = await askYuki(question, progress);
+      const text = r.answer ?? (r.status === 'not_configured' ? 'The AI key isn’t set up on the server yet, so here are the closest passages I found.' : r.status === 'unavailable' ? 'The mentor is temporarily unavailable. Please try again.' : 'I couldn’t find that in the research behind your profile. Try rephrasing.');
       setMsgs(m => [...m, { role: 'yuki', text, sources: r.sources }]);
     } catch (err) {
       setMsgs(m => [...m, { role: 'yuki', text: err instanceof Error ? err.message : 'Something went wrong.' }]);

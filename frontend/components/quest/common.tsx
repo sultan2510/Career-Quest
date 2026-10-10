@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import type { Career, IconKey } from '@/lib/types';
 import { useProgress } from '@/components/providers/progress-provider';
 
-export type View = 'journey' | 'careers' | 'simulation' | 'reflection' | 'plan' | 'profile' | 'profiler' | 'mentor';
+export type View = 'journey' | 'careers' | 'simulation' | 'reflection' | 'plan' | 'profile' | 'profiler' | 'interests' | 'ikigai' | 'mentor';
 
 export type NavApi = {
   view: View;

@@ -1,21 +1,60 @@
-"""Load knowledge.json into rag_chunks. Run once after schema.sql, and again whenever knowledge.json changes."""
-import asyncio, json, os, asyncpg
+"""Idempotently load CareerQuest's RAG documents without deleting other rows.
 
-def load_env():
-    p = os.path.join(os.path.dirname(__file__), ".env")
-    if "DATABASE_URL" not in os.environ and os.path.exists(p):
-        for line in open(p, encoding="utf-8"):
-            k, _, v = line.strip().partition("=")
-            if k and not k.startswith("#"): os.environ.setdefault(k, v)
+Run from the repository root: python -m backend.ingest
+"""
+from __future__ import annotations
 
-async def main():
+import asyncio
+import json
+import os
+from pathlib import Path
+
+import asyncpg
+
+HERE = Path(__file__).resolve().parent
+
+
+def load_env() -> None:
+    path = HERE / ".env"
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            key, separator, value = line.strip().partition("=")
+            if separator and key and not key.startswith("#"):
+                os.environ.setdefault(key, value)
+
+
+async def ingest(db, documents: list[dict]) -> None:
+    """Upsert only managed source keys; preserve legacy and unrelated rows."""
+    rows = [(doc["id"], doc["title"], doc["text"], doc.get("url"),
+             doc.get("kind", "knowledge"), json.dumps(doc.get("metadata", {})))
+            for doc in documents]
+    async with db.transaction():
+        await db.executemany(
+            "insert into rag_chunks(source_key,title,content,url,kind,metadata) "
+            "values($1,$2,$3,$4,$5,$6::jsonb) "
+            "on conflict (source_key) do update set title=excluded.title, content=excluded.content, "
+            "url=excluded.url, kind=excluded.kind, metadata=excluded.metadata",
+            rows,
+        )
+
+
+async def main() -> None:
+    from backend.rag_service import load_documents
+
     load_env()
-    chunks = json.load(open(os.path.join(os.path.dirname(__file__), "knowledge.json"), encoding="utf-8"))
-    c = await asyncpg.connect(os.environ["DATABASE_URL"], statement_cache_size=0)
-    async with c.transaction():
-        await c.execute("truncate rag_chunks restart identity")
-        await c.executemany("insert into rag_chunks(title, content) values($1, $2)", [(x["title"], x["text"]) for x in chunks])
-    await c.close()
-    print(f"Ingested {len(chunks)} chunks")
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("Set DATABASE_URL before ingesting RAG documents")
+    connection = await asyncpg.connect(database_url, statement_cache_size=0)
+    try:
+        migration = (HERE / "migrations/001_rag_sources.sql").read_text(encoding="utf-8")
+        await connection.execute(migration)
+        documents = load_documents()
+        await ingest(connection, documents)
+        print(f"Ingested {len(documents)} managed documents")
+    finally:
+        await connection.close()
 
-asyncio.run(main())
+
+if __name__ == "__main__":
+    asyncio.run(main())

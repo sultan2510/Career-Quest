@@ -1,0 +1,48 @@
+"""Models module containing data schemas and database interfaces."""
+
+from .schemas import (
+    UserProfile,
+    UserHistory,
+    CareerPath,
+    CareerSkill,
+    FullScenario,
+    ScenarioChoice,
+    DecisionOption,
+    SatisfactionOutcome,
+    OutcomePredictorInput,
+    DecisionPoint,
+    ProfileVector,
+    ProfileVectorFromSchemas,
+    ProfileVectorModel,
+    DimensionScore,
+    LearningTrajectory,
+    IntelligenceProfile,
+    RetrievalResult,
+    GeneratedResponse,
+    DatabaseInfo,
+)
+from .database import Database, get_database
+
+__all__ = [
+    "UserProfile",
+    "UserHistory",
+    "CareerPath",
+    "CareerSkill",
+    "FullScenario",
+    "ScenarioChoice",
+    "DecisionOption",
+    "SatisfactionOutcome",
+    "OutcomePredictorInput",
+    "DecisionPoint",
+    "ProfileVector",
+    "ProfileVectorFromSchemas",
+    "ProfileVectorModel",
+    "DimensionScore",
+    "LearningTrajectory",
+    "IntelligenceProfile",
+    "RetrievalResult",
+    "GeneratedResponse",
+    "DatabaseInfo",
+    "Database",
+    "get_database",
+]

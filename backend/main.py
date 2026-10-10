@@ -6,7 +6,16 @@ from email.message import EmailMessage
 import asyncpg, bcrypt, jwt
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+try:
+    from backend.progress import ProgressSnapshot
+except ModuleNotFoundError:
+    from progress import ProgressSnapshot
+try:
+    from backend.rag_service import RagService
+except ModuleNotFoundError:
+    from rag_service import RagService
 
 def load_env():  # backend/.env at startup, for shells that can't source it (Windows); real env vars win
     p = os.path.join(os.path.dirname(__file__), ".env")
@@ -19,6 +28,7 @@ def load_env():  # backend/.env at startup, for shells that can't source it (Win
 load_env()
 E = os.environ.get
 FRONT, SECRET, COOKIE, DAYS = E("FRONTEND_URL", "http://localhost:3000"), E("JWT_SECRET", ""), "cq_session", 7
+PASSWORD_SCHEME = "sha256-bcrypt$"
 DUMMY = bcrypt.hashpw(b"dummy", bcrypt.gensalt()).decode()  # keeps login timing similar for unknown emails
 
 
@@ -26,6 +36,7 @@ DUMMY = bcrypt.hashpw(b"dummy", bcrypt.gensalt()).decode()  # keeps login timing
 async def lifespan(app):
     assert len(SECRET) >= 32, "Set JWT_SECRET (32+ chars)"
     app.state.db = await asyncpg.create_pool(E("DATABASE_URL"), statement_cache_size=0, min_size=1, max_size=5)
+    app.state.rag = RagService(generation_config={"model": "qwen/qwen3.8-27b", "provider": None})
     yield
     await app.state.db.close()
 
@@ -42,8 +53,20 @@ pool = lambda req: req.app.state.db
 sha = lambda s: hashlib.sha256(s.encode()).hexdigest()
 now = lambda: datetime.now(timezone.utc)
 _pre = lambda p: base64.b64encode(hashlib.sha256(p.encode()).digest())  # bcrypt rejects >72 bytes, so hash first
-hash_pw = lambda p: asyncio.to_thread(lambda: bcrypt.hashpw(_pre(p), bcrypt.gensalt()).decode())
-check_pw = lambda p, h: asyncio.to_thread(lambda: bcrypt.checkpw(_pre(p), h.encode()))
+hash_pw = lambda p: asyncio.to_thread(lambda: PASSWORD_SCHEME + bcrypt.hashpw(_pre(p), bcrypt.gensalt()).decode())
+
+
+async def check_pw(password: str, stored: str) -> bool:
+    marked = stored.startswith(PASSWORD_SCHEME)
+    encoded = stored[len(PASSWORD_SCHEME):] if marked else stored
+    def verify() -> bool:
+        try:
+            if marked:
+                return bcrypt.checkpw(_pre(password), encoded.encode())
+            return bcrypt.checkpw(password.encode(), encoded.encode()) or bcrypt.checkpw(_pre(password), encoded.encode())
+        except (ValueError, TypeError):
+            return False
+    return await asyncio.to_thread(verify)
 pub = lambda u: {"id": str(u["id"]), "name": u["name"], "email": u["email"], "guest": False, "createdAt": u["created_at"].isoformat()}
 
 
@@ -51,8 +74,15 @@ class SignUp(BaseModel):
     name: str = Field(min_length=2, max_length=60)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    character: int | None = None
+    character: int | None = Field(default=None, ge=0, le=3, strict=True)
     progress: dict | None = None  # guest progress carried over
+
+    @field_validator("progress")
+    @classmethod
+    def validate_progress(cls, value):
+        if value is not None:
+            ProgressSnapshot.validate_payload({"v": 1, **value})
+        return value
 
 
 class Login(BaseModel): email: EmailStr; password: str
@@ -60,7 +90,24 @@ class EmailIn(BaseModel): email: EmailStr
 class TokenIn(BaseModel): token: str
 class ResetIn(BaseModel): token: str; password: str = Field(min_length=8, max_length=128)
 class NameIn(BaseModel): name: str = Field(min_length=2, max_length=60)
-class Ask(BaseModel): question: str = Field(min_length=1, max_length=1000); profile: str | None = Field(None, max_length=1500)
+class Ask(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    profile: str | None = Field(None, max_length=1500)
+    progress: dict | None = None
+
+    @field_validator("question")
+    @classmethod
+    def nonblank_question(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Question cannot be blank")
+        return value.strip()
+
+    @field_validator("progress")
+    @classmethod
+    def validate_progress(cls, value):
+        if value is not None:
+            ProgressSnapshot.validate_payload(value)
+        return value
 
 
 def set_session(res: Response, uid):
@@ -123,7 +170,7 @@ async def mail_verify(req, uid, email, name):
 
 @app.post("/auth/signup", status_code=201)
 async def signup(b: SignUp, req: Request):
-    email, prog = b.email.lower(), b.progress or {"v": 1}
+    email, prog = b.email.lower(), ({"v": 1, **b.progress} if b.progress is not None else {"v": 1})
     if len(json.dumps(prog)) > 200_000:
         err(413, "too_large", "Progress data is too large.")
     if b.character is not None and prog.get("character") is None:
@@ -218,7 +265,9 @@ async def get_progress(req: Request, u=Depends(current)):
 
 @app.put("/progress")
 async def put_progress(body: dict, req: Request, u=Depends(current)):
-    if body.get("v") != 1 or len(json.dumps(body)) > 200_000:
+    try:
+        ProgressSnapshot.validate_payload(body)
+    except (ValueError, TypeError):
         err(422, "bad_progress", "Invalid progress data.")
     await pool(req).execute("insert into progress(user_id,data) values($1,$2::jsonb) on conflict (user_id) do update set data=$2::jsonb, updated_at=now()",
                             u["id"], json.dumps(body))
@@ -227,26 +276,17 @@ async def put_progress(body: dict, req: Request, u=Depends(current)):
 
 @app.post("/rag/ask")
 async def rag_ask(b: Ask, req: Request, u=Depends(current)):
-    """Retrieval: Postgres full-text search over rag_chunks (run ingest.py once). Generation: Claude, if ANTHROPIC_API_KEY is set."""
+    """Ground answers in the catalog and the authenticated user's current context."""
     await throttle(req, f"rag:{u['id']}", 20, 600)
-    words = list(dict.fromkeys(re.findall(r"[a-z]{3,}", b.question.lower())))[:12]
-    rows = await pool(req).fetch(
-        "select title, content from rag_chunks where tsv @@ to_tsquery('english', $1) "
-        "order by ts_rank(tsv, to_tsquery('english', $1)) desc limit 5", " | ".join(words)) if words else []
-    sources = [{"n": i + 1, "title": r["title"], "excerpt": r["content"][:280]} for i, r in enumerate(rows)]
-    if not rows:
-        return {"status": "no_match", "answer": None, "sources": []}
-    if not E("ANTHROPIC_API_KEY"):
-        return {"status": "not_configured", "answer": None, "sources": sources}
-    from anthropic import AsyncAnthropic
-    context = "\n\n".join(f"[{i + 1}] {r['title']}: {r['content'][:1200]}" for i, r in enumerate(rows))
-    msg = await AsyncAnthropic().messages.create(
-        model=E("ANTHROPIC_MODEL", "claude-sonnet-5-5"), max_tokens=500,
-        system=("You are Yuki, a warm career-discovery mentor. Answer ONLY from the numbered context passages and the student's profile. "
-                "Cite passages like [1]. If the context does not cover the question, say so plainly. Profiles are a starting point, not a diagnosis. "
-                "Keep it under 180 words."),
-        messages=[{"role": "user", "content": f"Student profile: {b.profile or 'not completed yet'}\n\nContext:\n{context}\n\nQuestion: {b.question}"}])
-    return {"status": "ok", "answer": "".join(x.text for x in msg.content if x.type == "text"), "sources": sources}
+    if b.progress is None:
+        saved = await pool(req).fetchval("select data from progress where user_id=$1", u["id"])
+        raw = json.loads(saved) if saved else {"v": 1}
+        source = "database"
+    else:
+        raw, source = b.progress, "current"
+    snapshot = ProgressSnapshot.validate_payload(raw)
+    service = getattr(req.app.state, "rag", None) or RagService()
+    return await service.ask(pool(req), str(u["id"]), b.question, snapshot, b.profile, source)
 
 
 @app.get("/health")

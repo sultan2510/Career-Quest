@@ -42,8 +42,6 @@ export type Career = {
   reality: string;
   aiNote: string;
   profile: Partial<Record<Trait, number>>;
-  needs: number;
-  paid: number;
   tags: string[];
   skill: string;
   project: string;
@@ -80,6 +78,10 @@ export type Progress = {
   planCareer: string | null;
   explored: string[];
   dna: DnaState;
+  interests: Record<string, number>;
+  country: 'US' | 'PK';
+  statedInterests: string;
+  skillsAndProjects: string;
 };
 
 export const emptyProgress = (): Progress => ({
@@ -91,4 +93,8 @@ export const emptyProgress = (): Progress => ({
   planCareer: null,
   explored: [],
   dna: { answers: {}, tie: null, recon: null },
+  interests: {},
+  country: 'US',
+  statedInterests: '',
+  skillsAndProjects: '',
 });

@@ -17,7 +17,7 @@ function remove(key: string) {
 }
 export const store = { read, write, remove };
 
-const merge = (saved: Partial<Progress> | null): Progress => ({ ...emptyProgress(), ...(saved && saved.v === 1 ? saved : {}) });
+const merge = (saved: Partial<Progress> | null): Progress => ({ ...emptyProgress(), ...(saved && saved.v === 1 ? saved : {}), interests: saved?.interests ?? {} });
 
 // Guest progress lives in this browser only.
 export const loadLocal = (id: string) => merge(read<Partial<Progress> | null>(`progress:${id}`, null));
@@ -31,6 +31,9 @@ export async function loadProgress(userId: string): Promise<Progress> {
 }
 
 export async function saveProgress(userId: string, progress: Progress) {
-  if (userId === 'guest') return void write(`progress:${userId}`, progress);
-  try { await api('/progress', { method: 'PUT', body: progress }); } catch { /* retried on the next change */ }
+  if (userId === 'guest') {
+    if (!write(`progress:${userId}`, progress)) throw new Error('Browser could not save your progress.');
+    return;
+  }
+  await api('/progress', { method: 'PUT', body: progress });
 }

@@ -32,12 +32,11 @@ export const averageQuality = (ev: Evidence): number | null => {
   return scored.length ? scored.reduce((sum, d) => sum + d.quality, 0) / scored.length : null;
 };
 
-export type FitBreakdown = { love: number; goodAt: number; needs: number; paid: number; overall: number };
+export type FitBreakdown = { love: number; goodAt: number; overall: number };
 
 /**
- * Ikigai-style score. "Love" starts from trait fit and moves with enjoyment ratings.
- * "Good at" starts near neutral (we have no skill evidence yet) and moves with confidence and decision quality.
- * "World needs" and "paid" are static, illustrative career attributes.
+ * Exploratory legacy score for the original career list. The independent Ikigai
+ * view uses sourced occupation and market data in lib/ikigai.ts.
  */
 export function scoreCareer(career: Career, traits: Record<Trait, number>, evidence: Evidence[]): FitBreakdown {
   const fit = traitFit(career, traits);
@@ -59,8 +58,8 @@ export function scoreCareer(career: Career, traits: Record<Trait, number>, evide
   }
   love = clamp(love);
   goodAt = clamp(goodAt);
-  const overall = clamp(0.35 * love + 0.25 * goodAt + 0.2 * career.needs + 0.2 * career.paid);
-  return { love, goodAt, needs: career.needs, paid: career.paid, overall };
+  const overall = clamp(0.6 * love + 0.4 * goodAt);
+  return { love, goodAt, overall };
 }
 
 export type Ranked = { career: Career; score: FitBreakdown; baseline: FitBreakdown; delta: number };

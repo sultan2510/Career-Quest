@@ -1,0 +1,17 @@
+{
+  "source": "https://www.bls.gov/emp/tables/occupational-separations-and-openings.htm",
+  "wage_source": "https://www.bls.gov/oes/tables.htm",
+  "country": "US",
+  "wage_year": 2025,
+  "projection_period": "2025-2035",
+  "occupations": {
+    "design": { "soc": "15-1255", "median_annual_usd": 104000, "growth_pct": 6.0, "annual_openings": 8300, "employment_thousands": 132.7, "page": "https://www.bls.gov/ooh/computer-and-information-technology/web-developers.htm" },
+    "data": { "soc": "15-2051", "median_annual_usd": 120230, "growth_pct": 34.6, "annual_openings": 24800, "employment_thousands": 275.6, "page": "https://www.bls.gov/ooh/math/data-scientists.htm" },
+    "environment": { "soc": "19-2041", "median_annual_usd": 82220, "growth_pct": 6.1, "annual_openings": 7300, "employment_thousands": 93.4, "page": "https://www.bls.gov/ooh/life-physical-and-social-science/environmental-scientists-and-specialists.htm" },
+    "software": { "soc": "15-1252", "median_annual_usd": 135980, "growth_pct": 10.2, "annual_openings": 95300, "employment_thousands": 1717.8, "page": "https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm" },
+    "education": { "soc": "25-2031", "median_annual_usd": 72040, "growth_pct": -0.2, "annual_openings": 63500, "employment_thousands": 1087.5, "page": "https://www.bls.gov/ooh/education-training-and-library/high-school-teachers.htm" },
+    "health": { "soc": "29-1141", "median_annual_usd": 97550, "growth_pct": 5.6, "annual_openings": 180800, "employment_thousands": 3465.4, "page": "https://www.bls.gov/ooh/healthcare/registered-nurses.htm" },
+    "product": { "soc": "13-1082", "median_annual_usd": 102320, "growth_pct": 6.7, "annual_openings": 76500, "employment_thousands": 1094.3, "page": "https://www.bls.gov/ooh/business-and-financial/project-management-specialists.htm" },
+    "journalism": { "soc": "27-3023", "median_annual_usd": 62200, "growth_pct": -5.9, "annual_openings": 3400, "employment_thousands": 47.1, "page": "https://www.bls.gov/ooh/media-and-communication/reporters-correspondents-and-broadcast-news-analysts.htm" }
+  }
+}
