@@ -53,7 +53,7 @@ const isView = (v: string): v is View => NAV.some(n => n.id === v);
 
 export function AppShell() {
   const { user } = useAuth();
-  const { progress, xp, level, profiled, ranked, loaded, dispatch } = useProgress();
+  const { progress, xp, level, profiled, ranked, loaded, loadError, retryLoad, saveStatus, retrySave, dispatch } = useProgress();
   const [view, setView] = useState<View>('journey');
   const [simCareer, setSimCareer] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -82,7 +82,11 @@ export function AppShell() {
     openModal: m => setModal(m),
   }), [view, go, simCareer, dispatch]);
 
-  if (!user || !loaded) return null;
+  if (!user) return null;
+  if (!loaded) return <div className="splash" role="status"><div>{loadError ? <><p>Could not load your saved progress: {loadError}</p><Button onClick={retryLoad}>Try again</Button></> : 'Loading your saved progress…'}</div></div>;
+  const saveNotice = saveStatus === 'error'
+    ? <div role="alert" className="banner"><span>Your latest changes have not reached the database.</span><Button size="sm" onClick={() => void retrySave().catch(() => {})}>Retry save</Button></div>
+    : null;
   const character = progress.character !== null ? CHARACTERS[progress.character] : null;
   const career = careerById(careerId)!;
   const initials = character?.initials ?? user.name.slice(0, 2).toUpperCase();
@@ -90,7 +94,7 @@ export function AppShell() {
   const label = NAV.find(n => n.id === view)?.label;
 
   // The questionnaire takes over the whole screen: no sidebar, navigation, references or footer.
-  if (view === 'profiler') return <NavContext.Provider value={nav}><ProfilerView /></NavContext.Provider>;
+  if (view === 'profiler') return <NavContext.Provider value={nav}>{saveNotice}<ProfilerView /></NavContext.Provider>;
 
   return <NavContext.Provider value={nav}>
     <div className="app-shell">
@@ -110,12 +114,13 @@ export function AppShell() {
       </aside>
       <div className={cn('scrim', mobileOpen && 'open')} onClick={() => setMobileOpen(false)} aria-hidden="true" />
       <div className="main-shell">
+        {saveNotice}
         <header className="topbar">
           <div className="breadcrumb">
             <Button aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} variant="ghost" size="icon" className="mobile-menu" onClick={() => setMobileOpen(!mobileOpen)}>{mobileOpen ? <X /> : <Menu />}</Button>
             <Home size={14} /><span>Your adventure</span><ChevronRight size={12} /><strong>{label}</strong>
           </div>
-          <div className="top-actions"><span className="xp" aria-label={`${xp} experience points`}><Star />{xp} XP</span><button className="avatar" aria-label="Open profile" onClick={() => go('profile')} style={{ border: 0 }}>{avatar}</button></div>
+          <div className="top-actions"><span role="status" className="text-xs">{saveStatus === 'saving' ? 'Saving…' : saveStatus === 'error' ? 'Save failed' : 'Saved'}</span><span className="xp" aria-label={`${xp} experience points`}><Star />{xp} XP</span><button className="avatar" aria-label="Open profile" onClick={() => go('profile')} style={{ border: 0 }}>{avatar}</button></div>
         </header>
         <main className="main-content">
           <div className="page-heading"><div><h1>{HEADINGS[view][0]}</h1><p>{HEADINGS[view][1]}</p></div><span className="chip">{profiled ? 'Chapter 2 · Explore your world' : 'Chapter 1 · Discover yourself'}</span></div>

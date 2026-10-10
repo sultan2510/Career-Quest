@@ -58,12 +58,32 @@ export type Decision = {
   source: 'choice' | 'free-text';
 };
 
+export interface SimulationDecision {
+  scene_id: string;
+  user_choice: string;
+  free_text_explanation?: string;
+  enjoyment_rating?: number;
+  confidence_rating?: number;
+  timestamp: string;
+}
+
+export type LoggedDecision = SimulationDecision & Pick<Decision, 'outcome' | 'quality' | 'source'>;
+
+export type SimulationDraft = {
+  run_id: string;
+  career_id: string;
+  current_scene_id: string;
+  decision_log: LoggedDecision[];
+  started_at: string;
+};
+
 export type Evidence = {
   id: string;
   careerId: string;
   enjoyment: number;
   confidence: number;
   decisions: Decision[];
+  decision_log?: LoggedDecision[];
   at: string;
 };
 
@@ -73,6 +93,7 @@ export type Progress = {
   v: 1;
   character: number | null;
   evidence: Evidence[];
+  simulationDrafts: Record<string, SimulationDraft>;
   tasks: Record<string, string[]>;
   journal: JournalEntry[];
   planCareer: string | null;
@@ -88,6 +109,7 @@ export const emptyProgress = (): Progress => ({
   v: 1,
   character: null,
   evidence: [],
+  simulationDrafts: {},
   tasks: {},
   journal: [],
   planCareer: null,

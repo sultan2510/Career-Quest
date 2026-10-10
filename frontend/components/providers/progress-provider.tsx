@@ -1,10 +1,12 @@
 'use client';
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type ReactNode } from 'react';
 import { loadProgress, saveProgress } from '@/lib/storage';
 import { createSaveQueue } from '@/lib/save-queue';
 import { stageOf } from '@/lib/dna';
 import { computeBadges, computeXp, levelInfo, rankCareers, traitValues, type Badge, type Ranked } from '@/lib/scoring';
 import { emptyProgress, type Evidence, type JournalEntry, type Progress, type Trait } from '@/lib/types';
+import { advanceSimulation, finishSimulation, recordSimulationDecision } from '@/lib/simulation-progress';
+import type { Decision } from '@/lib/types';
 
 type Action =
   | { type: 'hydrate'; progress: Progress }
@@ -23,6 +25,9 @@ type Action =
   | { type: 'country'; country: Progress['country'] }
   | { type: 'statedInterests'; text: string }
   | { type: 'skillsAndProjects'; text: string }
+  | { type: 'simulationDecision'; careerId: string; decision: Decision; runId: string; timestamp: string }
+  | { type: 'simulationAdvance'; careerId: string; sceneId: string }
+  | { type: 'simulationFinish'; careerId: string; enjoyment: number; confidence: number; timestamp: string }
   | { type: 'reset' };
 
 function reducer(state: Progress, action: Action): Progress {
@@ -47,6 +52,9 @@ function reducer(state: Progress, action: Action): Progress {
     case 'country': return { ...state, country: action.country };
     case 'statedInterests': return { ...state, statedInterests: action.text };
     case 'skillsAndProjects': return { ...state, skillsAndProjects: action.text };
+    case 'simulationDecision': return recordSimulationDecision(state, action.careerId, action.decision, action.runId, action.timestamp);
+    case 'simulationAdvance': return advanceSimulation(state, action.careerId, action.sceneId);
+    case 'simulationFinish': return finishSimulation(state, action.careerId, action.enjoyment, action.confidence, action.timestamp);
     case 'reset': return emptyProgress();
   }
 }
@@ -55,6 +63,13 @@ type ProgressContextValue = {
   progress: Progress;
   dispatch: Dispatch<Action>;
   loaded: boolean;
+  loadError: string | null;
+  retryLoad: () => void;
+  saveStatus: 'saved' | 'saving' | 'error';
+  retrySave: () => Promise<void>;
+  recordDecision: (careerId: string, decision: Decision) => Promise<void>;
+  advanceRun: (careerId: string, sceneId: string) => Promise<void>;
+  completeRun: (careerId: string, enjoyment: number, confidence: number) => Promise<void>;
   traits: Record<Trait, number>;
   /** True once the Learning DNA profiler has been completed. */
   profiled: boolean;
@@ -70,38 +85,84 @@ const ProgressContext = createContext<ProgressContextValue | null>(null);
 export function ProgressProvider({ userId, children }: { userId: string; children: ReactNode }) {
   const [progress, dispatch] = useReducer(reducer, undefined, emptyProgress);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const saveQueue = useMemo(createSaveQueue, [userId]);
   const latestProgress = useRef(progress);
+  const lastSaved = useRef<Progress | null>(null);
+  const directSave = useRef<Progress | null>(null);
   latestProgress.current = progress;
 
   useEffect(() => {
     let alive = true;
     setLoaded(false);
-    loadProgress(userId).then(p => { if (alive) { dispatch({ type: 'hydrate', progress: p }); setLoaded(true); } }).catch(() => { /* stay unloaded so nothing is overwritten */ });
+    setLoadError(null);
+    loadProgress(userId).then(p => { if (alive) { lastSaved.current = p; latestProgress.current = p; dispatch({ type: 'hydrate', progress: p }); setLoaded(true); } })
+      .catch(error => { if (alive) setLoadError(error instanceof Error ? error.message : 'Could not load your progress.'); });
     return () => { alive = false; };
-  }, [userId]);
+  }, [userId, loadAttempt]);
+
+  const saveSnapshot = useCallback((snapshot: Progress) => {
+    if (latestProgress.current === snapshot) setSaveStatus('saving');
+    return saveQueue(() => saveProgress(userId, snapshot), () => latestProgress.current === snapshot)
+      .then(() => {
+        if (latestProgress.current === snapshot) {
+          lastSaved.current = snapshot;
+          setSaveStatus('saved');
+        }
+      })
+      .catch(error => {
+        if (latestProgress.current === snapshot) setSaveStatus('error');
+        throw error;
+      });
+  }, [saveQueue, userId]);
+
+  const retrySave = useCallback(() => saveSnapshot(latestProgress.current), [saveSnapshot]);
+
+  const persist = useCallback(async (action: Action) => {
+    const next = reducer(latestProgress.current, action);
+    directSave.current = next;
+    latestProgress.current = next;
+    dispatch({ type: 'hydrate', progress: next });
+    try {
+      await saveSnapshot(next);
+    } finally {
+      if (directSave.current === next) directSave.current = null;
+    }
+  }, [saveSnapshot]);
+
+  const recordDecision = useCallback((careerId: string, decision: Decision) => {
+    return persist({ type: 'simulationDecision', careerId, decision, runId: crypto.randomUUID(), timestamp: new Date().toISOString() });
+  }, [persist]);
+  const advanceRun = useCallback((careerId: string, sceneId: string) => persist({ type: 'simulationAdvance', careerId, sceneId }), [persist]);
+  const completeRun = useCallback((careerId: string, enjoyment: number, confidence: number) => {
+    return persist({ type: 'simulationFinish', careerId, enjoyment, confidence, timestamp: new Date().toISOString() });
+  }, [persist]);
 
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || progress === lastSaved.current || progress === directSave.current) return;
+    setSaveStatus('saving');
     const snapshot = progress;
     const t = setTimeout(() => {
-      void saveQueue(() => saveProgress(userId, snapshot), () => latestProgress.current === snapshot)
+      void saveSnapshot(snapshot)
         .catch(error => console.error('Could not save progress', error));
     }, userId === 'guest' ? 0 : 800); // debounce server saves
     return () => clearTimeout(t);
-  }, [progress, loaded, userId, saveQueue]);
+  }, [progress, loaded, userId, saveSnapshot]);
 
   const value = useMemo<ProgressContextValue>(() => {
     const traits = traitValues(progress.character);
     const xp = computeXp(progress);
     return {
-      progress, dispatch, loaded, traits,
+      progress, dispatch, loaded, loadError, retryLoad: () => setLoadAttempt(n => n + 1),
+      saveStatus, retrySave, recordDecision, advanceRun, completeRun, traits,
       profiled: stageOf(progress.dna).kind === 'done',
       hasSignal: progress.character !== null || Object.keys(progress.dna.answers).length > 0,
       ranked: rankCareers(traits, progress.evidence),
       xp, level: levelInfo(xp), badges: computeBadges(progress),
     };
-  }, [progress, loaded]);
+  }, [progress, loaded, loadError, saveStatus, retrySave, recordDecision, advanceRun, completeRun]);
 
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
 }

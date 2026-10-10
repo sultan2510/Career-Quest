@@ -3,6 +3,8 @@
 - `frontend/`: Next.js app (`cp .env.local.example .env.local`, `npm install`, `npm run dev` — or just `npm run dev` at the repo root)
 Run the API on :8000 and the frontend on :3000. Dev emails (verify/reset links) print in the API console.
 
+Signed-in progress is stored in Supabase Postgres through the FastAPI backend. Learning DNA, interests, Ikigai inputs, roadmap, journal, and simulation runs share the account's `progress.data` record; unfinished simulations resume from their last saved scene. Guest progress stays in browser storage until account creation. See [backend setup](backend/README.md) and [frontend persistence](frontend/README.md).
+
 ## Ikigai map and independent text baseline
 
 The frontend now has an 18-item interest screener and a four-circle Ikigai map. It joins O*NET 31.0 occupation profiles to BLS US wages/projections and ILOSTAT Pakistan employment/earnings. The supplied repository had no job-postings dataset, so the app does not claim to show posting counts. The Pakistan wage data are broad occupation-group proxies. Numbeo is displayed as country cost context. See [the step-by-step method and research sources](docs/IKIGAI_METHOD.md) for the scoring, data limitations, and Baseline A development plan.

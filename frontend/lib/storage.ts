@@ -17,7 +17,12 @@ function remove(key: string) {
 }
 export const store = { read, write, remove };
 
-const merge = (saved: Partial<Progress> | null): Progress => ({ ...emptyProgress(), ...(saved && saved.v === 1 ? saved : {}), interests: saved?.interests ?? {} });
+const merge = (saved: Partial<Progress> | null): Progress => ({
+  ...emptyProgress(),
+  ...(saved && saved.v === 1 ? saved : {}),
+  interests: saved?.interests ?? {},
+  simulationDrafts: saved?.simulationDrafts ?? {},
+});
 
 // Guest progress lives in this browser only.
 export const loadLocal = (id: string) => merge(read<Partial<Progress> | null>(`progress:${id}`, null));

@@ -17,8 +17,11 @@ Push to GitHub, import the repo in Vercel, and deploy. Set `NEXT_PUBLIC_API_URL`
 - `components/auth/` – log in, sign up (with character pick), guest mode
 - `components/quest/` – app shell and views (journey, careers, simulation, reflection, roadmap, profiler, mentor, profile)
 - `lib/data/` – characters, careers and scenarios (edit these to add content)
-- `lib/scoring.ts` – trait scoring, Ikigai fit, XP, badges
-- `lib/auth.ts` – browser-only accounts (see note)
+- `lib/scoring.ts` – trait scoring, XP, badges
+- `lib/auth.ts` – authenticated API sessions
+- `lib/storage.ts` – account progress through the API; browser storage for guests
 
-## Note on accounts
-Accounts are stored in the browser (salted PBKDF2 hashes in localStorage), so progress stays on one device. That suits a demo; replace `lib/auth.ts` and `lib/storage.ts` with Supabase/Clerk/Auth.js if you need cross-device accounts.
+## Data persistence
+Signed-in accounts use the FastAPI session cookie and the Postgres `users` and `progress` tables. The `progress.data` JSONB document contains Learning DNA, RIASEC answers, Ikigai inputs, roadmap tasks, journal entries, completed simulation evidence, and unfinished simulation drafts. Each simulation choice and scene transition is saved through `PUT /progress` before the next step appears. Completing a run writes the ratings and completed evidence in one document update. The app shows save errors and lets the user retry.
+
+Guest progress stays in this browser. Creating an account transfers the saved guest document into Postgres. The backend validates incoming progress and limits its size. Career descriptions and the sourced market snapshot are versioned with the app; they are shared reference data rather than per-user records.

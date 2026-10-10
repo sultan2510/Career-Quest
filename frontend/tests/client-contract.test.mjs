@@ -154,3 +154,53 @@ test('browser storage failures are surfaced for guest progress too', async () =>
   const load = client(async () => { throw new Error('Guests should not send progress to the server'); }, storage);
   await assert.rejects(load('lib/storage.ts').saveProgress('guest', load('lib/types.ts').emptyProgress()), /could not save/);
 });
+
+test('simulation decisions survive a progress API round trip and completed ratings become evidence', async () => {
+  let saved = null;
+  const load = client(async (_url, init) => {
+    if (init.method === 'PUT') saved = JSON.parse(init.body);
+    return response(saved ?? { v: 1 });
+  });
+  const { emptyProgress } = load('lib/types.ts');
+  const { saveProgress, loadProgress } = load('lib/storage.ts');
+  const { recordSimulationDecision, advanceSimulation, finishSimulation, resumeSimulation } = load('lib/simulation-progress.ts');
+  const first = { scene: 0, text: 'Test a simpler screen', outcome: 'Students finish booking.', quality: 2, source: 'choice' };
+  let progress = recordSimulationDecision(emptyProgress(), 'design', first, 'run-1', '2026-10-10T10:00:00Z');
+  await saveProgress('signed-in-user', progress);
+  progress = await loadProgress('signed-in-user');
+  assert.equal(progress.simulationDrafts.design.decision_log[0].scene_id, 'design:0');
+  assert.equal(resumeSimulation(progress.simulationDrafts.design).result.text, first.text);
+
+  progress = advanceSimulation(progress, 'design', 'design:1');
+  const second = { scene: 1, text: 'Ask students why', outcome: 'You learn more.', quality: null, source: 'free-text' };
+  progress = recordSimulationDecision(progress, 'design', second, 'ignored-run-id', '2026-10-10T11:00:00Z');
+  progress = advanceSimulation(progress, 'design', 'reflection');
+  await saveProgress('signed-in-user', progress);
+  progress = await loadProgress('signed-in-user');
+  assert.equal(resumeSimulation(progress.simulationDrafts.design).scene, 2);
+  assert.equal(progress.simulationDrafts.design.decision_log[1].free_text_explanation, second.text);
+
+  progress = finishSimulation(progress, 'design', 5, 4, '2026-10-10T12:00:00Z');
+  await saveProgress('signed-in-user', progress);
+  progress = await loadProgress('signed-in-user');
+  assert.equal(progress.simulationDrafts.design, undefined);
+  assert.equal(progress.evidence.length, 1);
+  assert.equal(progress.evidence[0].id, 'run-1');
+  assert.deepEqual([progress.evidence[0].enjoyment, progress.evidence[0].confidence], [5, 4]);
+  assert.deepEqual(progress.evidence[0].decisions.map(d => d.text), [first.text, second.text]);
+  assert.equal(progress.evidence[0].decision_log[0].timestamp, '2026-10-10T10:00:00Z');
+  assert.equal(progress.evidence[0].decision_log[1].enjoyment_rating, 5);
+  assert.equal(progress.evidence[0].decision_log[1].confidence_rating, 4);
+});
+
+test('changing a saved simulation choice replaces it and removes later dependent scenes', () => {
+  const load = client(async () => response({}));
+  const { emptyProgress } = load('lib/types.ts');
+  const { recordSimulationDecision } = load('lib/simulation-progress.ts');
+  const d = (scene, text) => ({ scene, text, outcome: 'Outcome', quality: 1, source: 'choice' });
+  let progress = recordSimulationDecision(emptyProgress(), 'data', d(0, 'First'), 'run-2', 'now');
+  progress = recordSimulationDecision(progress, 'data', d(1, 'Second'), 'unused', 'later');
+  progress = recordSimulationDecision(progress, 'data', d(0, 'Changed'), 'unused', 'latest');
+  assert.deepEqual(Array.from(progress.simulationDrafts.data.decision_log, item => item.user_choice), ['Changed']);
+  assert.equal(progress.simulationDrafts.data.run_id, 'run-2');
+});
