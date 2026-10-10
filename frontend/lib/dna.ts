@@ -96,8 +96,30 @@ export function careerFit(st: DnaState) {
     .sort((a, b) => b.fit - a.fit);
 }
 
-export function depth(st: DnaState) {
-  const reached = DNA_SCENARIOS.filter(s => s.parent && s.id in st.answers).map(s => BRANCH_DIM[s.id]);
+export const RIASEC_NAMES: Record<string, string> = {
+  R: 'Realistic', I: 'Investigative', A: 'Artistic', S: 'Social', E: 'Enterprising', C: 'Conventional',
+};
+
+/**
+ * Holland code, built only from the source document's own pattern-to-RIASEC alignments: each matched
+ * career family contributes its two letters, weighted by how well that family fits. Nothing is mapped
+ * dimension-to-letter by hand. Note the consequence — Conventional never appears in any of the five
+ * alignments, so no run can produce a C.
+ */
+export function riasecProfile(st: DnaState) {
+  const tally: Record<string, number> = { R: 0, I: 0, A: 0, S: 0, E: 0, C: 0 };
+  for (const f of careerFit(st)) for (const name of f.riasec.split('-')) {
+    const letter = name[0].toUpperCase();
+    if (letter in tally) tally[letter] += f.fit;
+  }
+  const max = Math.max(...Object.values(tally));
+  const ranked = Object.keys(tally)
+    .map(letter => ({ letter, name: RIASEC_NAMES[letter], score: tally[letter], norm: max ? tally[letter] / max : 0 }))
+    .sort((a, b) => b.score - a.score);
+  return { code: max ? ranked.slice(0, 3).map(r => r.letter).join('') : '', ranked, assessed: max > 0 };
+}
+
+export function depth(st: DnaState) {  const reached = DNA_SCENARIOS.filter(s => s.parent && s.id in st.answers).map(s => BRANCH_DIM[s.id]);
   return { reached: reached.length, total: Object.keys(BRANCH_DIM).length, byDim: reached.reduce<Partial<Record<DimKey, number>>>((m, d) => ({ ...m, [d]: (m[d] ?? 0) + 1 }), {}) };
 }
 

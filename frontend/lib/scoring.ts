@@ -96,9 +96,12 @@ export function classifyEvidence(ev: Evidence): { label: string; note: string } 
 export const LEVELS = ['Sprout', 'Seeker', 'Trailblazer', 'Pathfinder', 'Navigator', 'Trailmaster'];
 const XP_PER_LEVEL = 200;
 
+/** What one completed roadmap step is worth. Shown on the step itself, so keep the number in one place. */
+export const XP_PER_TASK = 10;
+
 export function computeXp(p: Progress): number {
   const taskCount = Object.values(p.tasks).reduce((n, list) => n + list.length, 0);
-  return (p.character !== null ? 50 : 0) + p.evidence.length * 100 + taskCount * 10 + p.journal.length * 30 + p.explored.length * 5;
+  return (p.character !== null ? 50 : 0) + p.evidence.length * 100 + taskCount * XP_PER_TASK + p.journal.length * 30 + p.explored.length * 5;
 }
 
 export function levelInfo(xp: number) {
