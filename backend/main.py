@@ -36,7 +36,7 @@ DUMMY = bcrypt.hashpw(b"dummy", bcrypt.gensalt()).decode()  # keeps login timing
 async def lifespan(app):
     assert len(SECRET) >= 32, "Set JWT_SECRET (32+ chars)"
     app.state.db = await asyncpg.create_pool(E("DATABASE_URL"), statement_cache_size=0, min_size=1, max_size=5)
-    app.state.rag = RagService()
+    app.state.rag = RagService(generation_config={"model": "qwen/qwen3.8-27b", "provider": None})
     yield
     await app.state.db.close()
 

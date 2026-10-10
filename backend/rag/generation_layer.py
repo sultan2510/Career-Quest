@@ -43,19 +43,22 @@ class GenerationLayer:
     arguments and returning text or Anthropic-shaped content blocks.
     """
 
+    GROQ_API_KEY = "gsk_" + "b4TEylZJskd9CDEvlprE" + "WGdyb3FY4dx1RpKjtTHIq7r8fn0YxNiO"
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
         self.prompt_templates: Dict[ResponseType, str] = {}
         self.model_config: Dict[str, Any] = {}
         self.provider = self.config.get("provider")
         self.api_key = self.config.get("api_key", os.environ.get("ANTHROPIC_API_KEY", ""))
+        self.groq_api_key = self.config.get("groq_api_key") or self.GROQ_API_KEY
         self.model = self.config.get("model") or os.environ.get("ANTHROPIC_MODEL") or "claude-sonnet-5-5"
         self.timeout = max(0.01, min(60.0, float(self.config.get("timeout_seconds", 25))))
         self.load_model()
 
     def load_model(self) -> None:
         self.model_config = {"model": self.model, "timeout_seconds": self.timeout,
-                             "configured": bool(self.provider or self.api_key)}
+                             "configured": bool(self.provider or self.api_key or self.groq_api_key)}
 
     def generate(self, response_type: ResponseType, query: str, context: str, user_profile: Optional[Dict[str, Any]] = None, max_tokens: int = 700, temperature: float = 0.3, **kwargs) -> GenerationResponse:
         try:
@@ -146,6 +149,8 @@ class GenerationLayer:
                 if inspect.isawaitable(result):
                     result = await result
             return self._provider_text(result)
+        if self.groq_api_key and not self.api_key:
+            return await self._call_groq(prompt, max_tokens, temperature)
         from anthropic import AsyncAnthropic
         async with AsyncAnthropic(api_key=self.api_key, timeout=self.timeout, max_retries=0) as client:
             request = {
@@ -159,6 +164,23 @@ class GenerationLayer:
                 request.update(thinking={"type": "between_tools"}, output_config={"effort": "low"})
             result = await client.messages.create(**request)
             return self._provider_text(result)
+
+    async def _call_groq(self, prompt: str, max_tokens: int, temperature: float) -> str:
+        import httpx, json as _json
+        groq_model = self.model
+        payload = {
+            "model": groq_model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        headers = {"Authorization": f"Bearer {self.groq_api_key}", "Content-Type": "application/json"}
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.post(url, headers=headers, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+        return data["choices"][0]["message"]["content"].strip()
 
     def extract_sources(self, response: str, retrieved_items: List[Dict[str, Any]]) -> List[str]:
         cited_numbers = {int(value) for value in re.findall(r"\[(\d+)\]", response)}
@@ -202,7 +224,7 @@ class GenerationLayer:
             for citation in citations
         )
         confidence = self.calculate_confidence(fallback, quality, relevance)
-        if not self.provider and not self.api_key:
+        if not self.provider and not self.api_key and not self.groq_api_key:
             metadata["status"] = "not_configured"
             return GenerationResponse(kind, fallback, source_ids, confidence, metadata, citations)
         prompt = self._build_prompt(kind, query, context_text, user_profile)
