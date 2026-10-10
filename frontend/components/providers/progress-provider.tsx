@@ -69,6 +69,7 @@ type ProgressContextValue = {
   retryLoad: () => void;
   saveStatus: 'saved' | 'saving' | 'error';
   retrySave: () => Promise<void>;
+  resetProgress: () => Promise<void>;
   recordDecision: (careerId: string, decision: Decision) => Promise<void>;
   advanceRun: (careerId: string, sceneId: string) => Promise<void>;
   completeRun: (careerId: string, enjoyment: number, confidence: number) => Promise<void>;
@@ -141,6 +142,7 @@ export function ProgressProvider({ userId, children }: { userId: string; childre
   const completeRun = useCallback((careerId: string, enjoyment: number, confidence: number) => {
     return persist({ type: 'simulationFinish', careerId, enjoyment, confidence, timestamp: new Date().toISOString() });
   }, [persist]);
+  const resetProgress = useCallback(() => persist({ type: 'reset' }), [persist]);
 
   useEffect(() => {
     if (!loaded || progress === lastSaved.current || progress === directSave.current) return;
@@ -149,7 +151,7 @@ export function ProgressProvider({ userId, children }: { userId: string; childre
     const t = setTimeout(() => {
       void saveSnapshot(snapshot)
         .catch(error => console.error('Could not save progress', error));
-    }, userId === 'guest' ? 0 : 800); // debounce server saves
+    }, 800); // debounce account and guest database saves
     return () => clearTimeout(t);
   }, [progress, loaded, userId, saveSnapshot]);
 
@@ -158,13 +160,13 @@ export function ProgressProvider({ userId, children }: { userId: string; childre
     const xp = computeXp(progress);
     return {
       progress, dispatch, loaded, loadError, retryLoad: () => setLoadAttempt(n => n + 1),
-      saveStatus, retrySave, recordDecision, advanceRun, completeRun, traits,
+      saveStatus, retrySave, resetProgress, recordDecision, advanceRun, completeRun, traits,
       profiled: stageOf(progress.dna).kind === 'done',
       hasSignal: progress.character !== null || Object.keys(progress.dna.answers).length > 0,
       ranked: rankCareers(traits, progress.evidence),
       xp, level: levelInfo(xp), badges: computeBadges(progress),
     };
-  }, [progress, loaded, loadError, saveStatus, retrySave, recordDecision, advanceRun, completeRun]);
+  }, [progress, loaded, loadError, saveStatus, retrySave, resetProgress, recordDecision, advanceRun, completeRun]);
 
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
 }

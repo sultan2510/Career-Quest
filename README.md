@@ -3,7 +3,7 @@
 - `frontend/`: Next.js app (`cp .env.local.example .env.local`, `npm install`, `npm run dev` — or just `npm run dev` at the repo root)
 Run the API on :8000 and the frontend on :3000. Dev emails (verify/reset links) print in the API console.
 
-Signed-in progress is stored in Supabase Postgres through the FastAPI backend. Learning DNA, interests, Ikigai inputs, roadmap, journal, mentor conversation, and simulation runs share the account's `progress.data` record; unfinished simulations resume from their last saved scene. Guest progress stays in browser storage until account creation. See [backend setup](backend/README.md) and [frontend persistence](frontend/README.md).
+Account and guest progress are stored in Supabase Postgres through the FastAPI backend. Learning DNA, interests, Ikigai inputs, roadmap, journal, mentor conversation, and simulation runs share one progress document per person; unfinished simulations resume from their last saved scene. Anonymous guest sessions use a private browser cookie and expire after 90 days. Creating an account transfers the guest document. See [backend setup](backend/README.md) and [frontend persistence](frontend/README.md).
 
 ## Ikigai map and independent text baseline
 

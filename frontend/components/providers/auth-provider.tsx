@@ -7,16 +7,18 @@ type Panel = 'login' | 'signup' | null;
 type AuthContextValue = {
   user: User | null;
   ready: boolean;
+  sessionError: string | null;
+  retrySession: () => void;
   panel: Panel;
   openAuth: (mode: Exclude<Panel, null>) => void;
   closeAuth: () => void;
   signUp: (input: { name: string; email: string; password: string; character: number | null }) => Promise<void>;
   logIn: (email: string, password: string) => Promise<void>;
   adopt: (user: User) => void;
-  guest: () => void;
-  logOut: () => void;
+  guest: () => Promise<void>;
+  logOut: () => Promise<void>;
   rename: (name: string) => void;
-  deleteAccount: () => void;
+  deleteAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -24,10 +26,19 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [sessionAttempt, setSessionAttempt] = useState(0);
   const [panel, setPanel] = useState<Panel>(null);
 
   // The session cookie is checked with the API after mount.
-  useEffect(() => { auth.getSessionUser().then(u => { setUser(u); setReady(true); }); }, []);
+  useEffect(() => {
+    let alive = true;
+    setReady(false);
+    setSessionError(null);
+    auth.getSessionUser().then(u => { if (alive) { setUser(u); setReady(true); } })
+      .catch(error => { if (alive) { setSessionError(error instanceof Error ? error.message : 'Could not reach the server.'); setReady(true); } });
+    return () => { alive = false; };
+  }, [sessionAttempt]);
 
   const signUp = useCallback<AuthContextValue['signUp']>(async input => { await auth.signUp(input); }, []);
   const logIn = useCallback<AuthContextValue['logIn']>(async (email, password) => {
@@ -36,16 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
-    user, ready, panel,
+    user, ready, panel, sessionError, retrySession: () => setSessionAttempt(n => n + 1),
     openAuth: mode => setPanel(mode),
     closeAuth: () => setPanel(null),
     signUp, logIn,
     adopt: u => { setUser(u); setPanel(null); },
-    guest: () => { setUser(auth.continueAsGuest()); setPanel(null); },
-    logOut: () => { void auth.logOut(); setUser(null); setPanel(null); },
+    guest: async () => { setUser(await auth.continueAsGuest()); setPanel(null); },
+    logOut: async () => { await auth.logOut(); setUser(null); setPanel(null); },
     rename: async name => { if (user && !user.guest) { try { setUser(await auth.updateName(name)); } catch { /* keep old name */ } } },
-    deleteAccount: async () => { if (user && !user.guest) { try { await auth.deleteAccount(); setUser(null); setPanel(null); } catch { /* still signed in */ } } },
-  }), [user, ready, panel, signUp, logIn]);
+    deleteAccount: async () => { if (user) { await auth.deleteAccount(); setUser(null); setPanel(null); } },
+  }), [user, ready, panel, sessionError, signUp, logIn]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

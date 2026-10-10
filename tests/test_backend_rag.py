@@ -3,6 +3,7 @@
 import asyncio
 import importlib.util
 import json
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -32,16 +33,32 @@ class FakeDatabase:
             ALICE: {"v": 1, "journal": [{"id": "alice-note", "text": "I enjoyed design and interviews.", "prompt": "What gave you energy?"}]},
             BOB: {"v": 1, "journal": [{"id": "bob-note", "text": "Bob's private journal sentinel.", "prompt": "What gave you energy?"}]},
         }
+        self.guests = {}
         self.calls = []
         self.chunk_error = None
         self.rows = []
 
+    @asynccontextmanager
+    async def acquire(self):
+        yield self
+
+    @asynccontextmanager
+    async def transaction(self):
+        yield
+
     async def fetchrow(self, sql, *args):
         self.calls.append((sql, args))
+        if "from guest_sessions where token_hash=$1" in sql:
+            return self.guests.get(args[0])
+        if "insert into guest_sessions" in sql:
+            row = {"id": uuid.uuid4(), "data": args[1], "created_at": datetime.now(timezone.utc)}
+            self.guests[args[0]] = row
+            return row
         if "from users where id=$1" in sql:
             return self.users.get(str(args[0]))
         if "insert into users" in sql:
             self.users[ALICE].update(name=args[0], email=args[1], password_hash=args[2])
+            self.users[ALICE]["pending_guest_id"] = args[3]
             return {"id": ALICE}
         raise AssertionError(f"Unexpected fetchrow query: {sql}")
 
@@ -51,6 +68,14 @@ class FakeDatabase:
             return 0
         if "select data from progress" in sql:
             return json.dumps(self.progress.get(str(args[0])))
+        if "select data from guest_sessions" in sql:
+            return next((row["data"] for row in self.guests.values() if row["id"] == args[0]), None)
+        if "update guest_sessions set data=" in sql:
+            row = next((row for row in self.guests.values() if row["id"] == args[0]), None)
+            if row:
+                row["data"] = args[1]
+                return row["id"]
+            return None
         raise AssertionError(f"Unexpected fetchval query: {sql}")
 
     async def fetch(self, sql, *args):
@@ -63,6 +88,8 @@ class FakeDatabase:
         self.calls.append((sql, args))
         if "insert into progress" in sql:
             self.progress[str(args[0])] = json.loads(args[1])
+        if "delete from guest_sessions where id=$1" in sql:
+            self.guests = {key: row for key, row in self.guests.items() if row["id"] != args[0]}
         return "OK"
 
 
@@ -121,6 +148,53 @@ def test_signup_preserves_valid_partial_guest_progress_and_unknown_fields(client
             "progress": {"journal": [], "future_ui_feature": {"selected": True}}}
     assert http.post("/auth/signup", json=body).status_code == 201
     assert db.progress[ALICE] == {"v": 1, "character": 3, "journal": [], "future_ui_feature": {"selected": True}}
+
+
+def test_guest_progress_is_database_backed_and_private_to_its_cookie(client):
+    _, db = client
+    first = TestClient(main.app)
+    second = TestClient(main.app)
+    try:
+        a = first.post("/auth/guest", json={})
+        b = second.post("/auth/guest", json={})
+        assert a.status_code == b.status_code == 201
+        assert a.json()["guest"] is True
+        assert a.json()["id"] != b.json()["id"]
+        payload = {"v": 1, "interests": {"R1": 5}, "journal": [{"id": "private", "text": "Only first guest"}]}
+        assert first.put("/progress", json=payload).status_code == 200
+        assert first.get("/progress").json() == payload
+        assert second.get("/progress").json() == {"v": 1}
+        assert len(db.guests) == 2
+        first.cookies.set(main.GUEST_COOKIE, "wrong-token")
+        assert first.get("/progress").status_code == 401
+    finally:
+        first.close()
+        second.close()
+
+
+def test_signup_copies_latest_database_guest_progress(client, monkeypatch):
+    _, db = client
+    guest = TestClient(main.app)
+
+    async def hash_password(_password):
+        return "test-hash"
+
+    async def skip_email(*_args):
+        return None
+
+    monkeypatch.setattr(main, "hash_pw", hash_password)
+    monkeypatch.setattr(main, "mail_verify", skip_email)
+    try:
+        assert guest.post("/auth/guest", json={}).status_code == 201
+        assert guest.put("/progress", json={"v": 1, "character": 2, "interests": {"I1": 4}}).status_code == 200
+        created = guest.post("/auth/signup", json={"name": "New user", "email": "new@example.com",
+                                                   "password": "test-password", "character": 3,
+                                                   "progress": {"v": 1, "character": 0}})
+        assert created.status_code == 201
+        assert db.progress[ALICE] == {"v": 1, "character": 2, "interests": {"I1": 4}}
+        assert db.users[ALICE]["pending_guest_id"] is not None
+    finally:
+        guest.close()
 
 
 @pytest.mark.parametrize("question", ["", "    ", "a" * 1001])

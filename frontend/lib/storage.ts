@@ -25,21 +25,16 @@ const merge = (saved: Partial<Progress> | null): Progress => ({
   mentorMessages: saved?.mentorMessages ?? [],
 });
 
-// Guest progress lives in this browser only.
+// Read-only migration helpers for progress saved by older browser-only guest mode.
 export const loadLocal = (id: string) => merge(read<Partial<Progress> | null>(`progress:${id}`, null));
 export const hasLocal = (id: string) => read<unknown>(`progress:${id}`, null) !== null;
 export const clearLocal = (id: string) => remove(`progress:${id}`);
 
-/** Signed-in progress lives on the server. Throws if it can't be loaded, so an empty copy never overwrites saved data. */
-export async function loadProgress(userId: string): Promise<Progress> {
-  if (userId === 'guest') return loadLocal(userId);
+/** Account and guest progress live on the server. Never replace saved data after a failed load. */
+export async function loadProgress(_userId: string): Promise<Progress> {
   return merge(await api<Partial<Progress>>('/progress'));
 }
 
-export async function saveProgress(userId: string, progress: Progress) {
-  if (userId === 'guest') {
-    if (!write(`progress:${userId}`, progress)) throw new Error('Browser could not save your progress.');
-    return;
-  }
+export async function saveProgress(_userId: string, progress: Progress) {
   await api('/progress', { method: 'PUT', body: progress });
 }

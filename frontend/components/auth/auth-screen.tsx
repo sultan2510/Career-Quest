@@ -12,7 +12,7 @@ const TAGLINES = [
   'Seven short stories. About fifteen decisions. No right answers.',
   'Follow-ups adapt to what you chose, so no two runs look alike.',
   'Try a day in a career before you commit to one.',
-  'Guest progress stays on this device. An account follows you.',
+  'Guest progress is saved privately. An account follows you across devices.',
 ];
 
 function Taglines() {
@@ -29,7 +29,7 @@ function Taglines() {
 const FieldError = ({ id, children }: { id: string; children: ReactNode }) =>
   <span className="field-error" id={id}><AlertCircle />{children}</span>;
 
-export function AuthScreen() {
+export function AuthScreen({ beforeSignUp }: { beforeSignUp?: () => Promise<void> } = {}) {
   const { user, panel, signUp, logIn, guest, closeAuth, adopt } = useAuth();
   const [mode, setMode] = useState<Mode>(() => {
     const q = new URLSearchParams(window.location.search);
@@ -89,12 +89,19 @@ export function AuthScreen() {
     setBusy(true);
     try {
       if (mode === 'login') await logIn(email, password);
-      else { await signUp({ name, email, password, character }); setPending(email.trim().toLowerCase()); setMode('verify'); setBusy(false); }
+      else { if (beforeSignUp) await beforeSignUp(); await signUp({ name, email, password, character }); setPending(email.trim().toLowerCase()); setMode('verify'); setBusy(false); }
     } catch (err) {
       if (err instanceof AuthError && err.code === 'email_not_verified') { setPending(email.trim().toLowerCase()); setMode('verify'); setBusy(false); return; }
       setError(err instanceof AuthError ? err.message : 'Something went wrong. Please try again.');
       setBusy(false);
     }
+  };
+
+  const enterGuest = async () => {
+    setError(''); setBusy(true);
+    try { await guest(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not start guest mode. Please try again.'); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -166,8 +173,8 @@ export function AuthScreen() {
               </div>
               {error && <div className="form-error" role="alert">{error}</div>}
               <Button type="submit" className="w-full h-11" disabled={busy}>{busy ? 'Logging in…' : mode === 'login' ? 'Log in' : 'Next: choose a character'} <ArrowRight /></Button>
-              {!user && <><div className="divider">or</div><Button type="button" variant="outline" className="w-full h-11" onClick={guest}>Explore as a guest</Button></>}
-              <p className="text-xs mt-4" style={{ color: 'var(--muted-foreground)' }}>Your progress is saved to your account and follows you across devices. Guest progress stays on this device.</p>
+              {!user && <><div className="divider">or</div><Button type="button" variant="outline" className="w-full h-11" disabled={busy} onClick={() => void enterGuest()}>{busy ? 'Starting guest session…' : 'Explore as a guest'}</Button></>}
+              <p className="text-xs mt-4" style={{ color: 'var(--muted-foreground)' }}>Guest work is saved in the database under a private browser cookie for 90 days. Create an account to use it on other devices.</p>
             </form>
           )}
         </main>

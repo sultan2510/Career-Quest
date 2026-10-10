@@ -10,14 +10,35 @@ import { buildReport, download } from '@/lib/report';
 
 export function ProfileView() {
   const { user, rename, logOut, deleteAccount, openAuth } = useAuth();
-  const { progress, dispatch, badges, level, xp } = useProgress();
+  const { progress, resetProgress, retrySave, badges, level, xp } = useProgress();
   const [name, setName] = useState(user?.name ?? '');
   const [confirm, setConfirm] = useState<'reset' | 'delete' | null>(null);
+  const [actionError, setActionError] = useState('');
+  const [busy, setBusy] = useState(false);
   if (!user) return null;
   const earned = badges.filter(b => b.earned).length;
 
+  const leave = async () => {
+    setActionError(''); setBusy(true);
+    try { await retrySave(); await logOut(); }
+    catch (cause) { setActionError(cause instanceof Error ? cause.message : 'Could not end the session. Please try again.'); }
+    finally { setBusy(false); }
+  };
+
+  const confirmAction = async () => {
+    setActionError(''); setBusy(true);
+    try {
+      if (confirm === 'delete') await deleteAccount();
+      else await resetProgress();
+      setConfirm(null);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Could not save the change. Please try again.');
+    } finally { setBusy(false); }
+  };
+
   return <div className="stack">
-    {user.guest && <div className="banner"><span>You’re exploring as a guest. Create an account to keep your progress under your name.</span><Button size="sm" onClick={() => openAuth('signup')}>Create account</Button></div>}
+    {user.guest && <div className="banner"><span>Your guest work is saved privately in the database for this browser. Create an account to access it on other devices.</span><Button size="sm" onClick={() => openAuth('signup')}>Create account</Button></div>}
+    {actionError && <div className="form-error" role="alert">{actionError}</div>}
     <section className="workspace">
       <h2 style={{ marginTop: 0 }}>Level {level.level} {level.title}</h2>
       <div className="quest-progress" style={{ marginTop: 0 }}><div className="progress-track"><div className="progress-fill" style={{ width: `${level.intoLevel / level.perLevel * 100}%` }} /></div><span>{xp} XP</span></div>
@@ -34,14 +55,14 @@ export function ProfileView() {
         <Button variant="outline" onClick={() => download('careerquest-report.md', buildReport(user.name, progress))}><Download />Download my report</Button>
         <Button variant="outline" onClick={() => download('careerquest-data.json', JSON.stringify(progress, null, 2), 'application/json')}><Download />Export my data</Button>
         <Button variant="outline" onClick={() => setConfirm('reset')}>Reset my progress</Button>
-        <Button variant="outline" onClick={logOut}><LogOut />{user.guest ? 'Leave guest mode' : 'Log out'}</Button>
-        {!user.guest && <Button variant="outline" onClick={() => setConfirm('delete')}><Trash2 />Delete account</Button>}
+        <Button variant="outline" disabled={busy} onClick={() => void leave()}><LogOut />{user.guest ? 'Leave guest mode' : 'Log out'}</Button>
+        <Button variant="outline" disabled={busy} onClick={() => setConfirm('delete')}><Trash2 />{user.guest ? 'Delete guest data' : 'Delete account'}</Button>
       </div>
     </section>
     <Dialog open={confirm !== null} onOpenChange={o => !o && setConfirm(null)}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{confirm === 'delete' ? 'Delete your account?' : 'Reset your progress?'}</DialogTitle><DialogDescription>{confirm === 'delete' ? 'This permanently removes your account and everything saved to it. It can’t be undone.' : 'This clears your character, answers, simulations, journal, and roadmap. Your account stays.'}</DialogDescription></DialogHeader>
-        <div className="flex gap-3 justify-end"><Button variant="outline" onClick={() => setConfirm(null)}>Cancel</Button><Button onClick={() => { if (confirm === 'delete') deleteAccount(); else dispatch({ type: 'reset' }); setConfirm(null); }}>{confirm === 'delete' ? 'Delete account' : 'Reset progress'}</Button></div>
+        <DialogHeader><DialogTitle>{confirm === 'delete' ? (user.guest ? 'Delete your guest data?' : 'Delete your account?') : 'Reset your progress?'}</DialogTitle><DialogDescription>{confirm === 'delete' ? 'This permanently removes this session and everything saved to it. It can’t be undone.' : 'This clears your character, answers, simulations, journal, and roadmap. Your session stays.'}</DialogDescription></DialogHeader>
+        <div className="flex gap-3 justify-end"><Button variant="outline" disabled={busy} onClick={() => setConfirm(null)}>Cancel</Button><Button disabled={busy} onClick={() => void confirmAction()}>{busy ? 'Saving…' : confirm === 'delete' ? (user.guest ? 'Delete guest data' : 'Delete account') : 'Reset progress'}</Button></div>
       </DialogContent>
     </Dialog>
   </div>;

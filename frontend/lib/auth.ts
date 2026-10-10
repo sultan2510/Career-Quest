@@ -1,9 +1,9 @@
 import { api, ApiError } from '@/lib/api';
 import { clearLocal, hasLocal, loadLocal, store } from '@/lib/storage';
 
-/** Accounts live on the FastAPI backend (httpOnly session cookie). Guest mode stays in this browser. */
+/** Accounts and anonymous guest sessions live behind the FastAPI API and HTTP-only cookies. */
 export type User = { id: string; name: string; email: string; guest: boolean; createdAt: string };
-export const GUEST: User = { id: 'guest', name: 'Guest explorer', email: '', guest: true, createdAt: '' };
+const LEGACY_GUEST_ID = 'guest';
 
 export class AuthError extends Error {
   constructor(message: string, public code?: string) { super(message); }
@@ -48,16 +48,25 @@ export function passwordStrength(password: string): { score: 0 | 1 | 2 | 3; labe
 }
 
 export async function getSessionUser(): Promise<User | null> {
-  if (store.read('guest', false)) return GUEST;
-  try { return await api<User>('/auth/me'); } catch { return null; }
+  try {
+    return await api<User>('/auth/me');
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      if (store.read('guest', false)) {
+        try { return await continueAsGuest(); } catch { return null; }
+      }
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function signUp(input: { name: string; email: string; password: string; character: number | null }) {
   const problem = validateSignUp(input.name, input.email, input.password);
   if (problem) throw new AuthError(problem);
-  const progress = hasLocal(GUEST.id) ? loadLocal(GUEST.id) : null; // keep anything done as a guest
+  const progress = hasLocal(LEGACY_GUEST_ID) ? loadLocal(LEGACY_GUEST_ID) : null;
   const res = await call(api<{ email: string }>('/auth/signup', { method: 'POST', body: { name: input.name.trim(), email: input.email.trim(), password: input.password, character: input.character, progress } }));
-  clearLocal(GUEST.id); store.remove('guest');
+  clearLocal(LEGACY_GUEST_ID); store.remove('guest');
   return res;
 }
 
@@ -77,11 +86,16 @@ export const resendVerification = (email: string) => call(api('/auth/resend', { 
 export const forgotPassword = (email: string) => call(api('/auth/forgot', { method: 'POST', body: { email } }));
 export const resetPassword = (token: string, password: string) => call(api('/auth/reset', { method: 'POST', body: { token, password } }));
 
-export function continueAsGuest(): User { store.write('guest', true); return GUEST; }
+export async function continueAsGuest(): Promise<User> {
+  const progress = hasLocal(LEGACY_GUEST_ID) ? loadLocal(LEGACY_GUEST_ID) : null;
+  const user = await call(api<User>('/auth/guest', { method: 'POST', body: { progress } }));
+  clearLocal(LEGACY_GUEST_ID);
+  store.remove('guest');
+  return user;
+}
 
 export async function logOut() {
-  if (store.read('guest', false)) return void store.remove('guest');
-  try { await api('/auth/logout', { method: 'POST' }); } catch { /* cookie expires on its own */ }
+  await call(api('/auth/logout', { method: 'POST' }));
 }
 
 export const updateName = (name: string) => call(api<User>('/auth/me', { method: 'PATCH', body: { name } }));

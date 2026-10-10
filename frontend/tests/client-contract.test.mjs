@@ -149,10 +149,50 @@ test('superseded snapshots waiting behind an active save are skipped', async () 
   assert.deepEqual(written, ['first', 'latest']);
 });
 
-test('browser storage failures are surfaced for guest progress too', async () => {
-  const storage = { get: () => null, set: () => { throw new Error('Storage full'); }, delete: () => {} };
-  const load = client(async () => { throw new Error('Guests should not send progress to the server'); }, storage);
-  await assert.rejects(load('lib/storage.ts').saveProgress('guest', load('lib/types.ts').emptyProgress()), /could not save/);
+test('guest progress uses the same authenticated database API as account progress', async () => {
+  let saved = { v: 1 };
+  const calls = [];
+  const load = client(async (url, init) => {
+    calls.push({ url, method: init.method, credentials: init.credentials });
+    if (init.method === 'PUT') saved = JSON.parse(init.body);
+    return response(saved);
+  });
+  const progress = { ...load('lib/types.ts').emptyProgress(), interests: { R1: 5 } };
+  await load('lib/storage.ts').saveProgress('guest-uuid', progress);
+  const restored = await load('lib/storage.ts').loadProgress('guest-uuid');
+  assert.equal(restored.interests.R1, 5);
+  assert.deepEqual(calls.map(call => [call.url, call.method, call.credentials]), [
+    ['/api/progress', 'PUT', 'include'], ['/api/progress', 'GET', 'include'],
+  ]);
+});
+
+test('an old browser-only guest is imported once into a server guest session', async () => {
+  const storage = new Map([
+    ['careerquest:guest', 'true'],
+    ['careerquest:progress:guest', JSON.stringify({ v: 1, interests: { I1: 4 } })],
+  ]);
+  let imported;
+  const load = client(async (url, init) => {
+    if (url === '/api/auth/me') return response({ detail: { code: 'unauthenticated', message: 'No session' } }, 401);
+    imported = JSON.parse(init.body).progress;
+    return response({ id: 'guest-uuid', name: 'Guest explorer', email: '', guest: true, createdAt: '2026-10-10T00:00:00Z' }, 201);
+  }, storage);
+  const user = await load('lib/auth.ts').getSessionUser();
+  assert.equal(user.id, 'guest-uuid');
+  assert.equal(imported.interests.I1, 4);
+  assert.equal(storage.has('careerquest:progress:guest'), false);
+  assert.equal(storage.has('careerquest:guest'), false);
+});
+
+test('a returning guest whose server session fails falls back to the login screen', async () => {
+  const storage = new Map([['careerquest:guest', 'true']]);
+  const load = client(async (url) => {
+    if (url === '/api/auth/me') return response({ detail: { code: 'unauthenticated', message: 'No session' } }, 401);
+    if (url === '/api/auth/guest') return response({ detail: { code: 'server_error', message: 'Server down' } }, 503);
+    return response({});
+  }, storage);
+  const user = await load('lib/auth.ts').getSessionUser();
+  assert.equal(user, null);
 });
 
 test('simulation decisions survive a progress API round trip and completed ratings become evidence', async () => {

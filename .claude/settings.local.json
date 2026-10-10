@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($d=\"C:\\\\Users\\\\Emaan\\\\Downloads\\\\careerquest-fullstack-v2\"; Get-ChildItem -Recurse -File $d | Where-Object { $_.Extension -in '.py','.tsx','.ts','.mjs','.sql','.json' } | ForEach-Object { \"{0,8}  {1}\" -f $_.Length, $_.FullName.Substring\\($d.Length+1\\) } | Sort-Object)",
+      "PowerShell(py --version)",
+      "PowerShell(py --list 2>&1)",
+      "PowerShell($id = [Security.Principal.WindowsIdentity]::GetCurrent\\(\\); $p = New-Object Security.Principal.WindowsPrincipal\\($id\\); \"user: $\\($id.Name\\)\"; \"elevated: $\\($p.IsInRole\\([Security.Principal.WindowsBuiltInRole]::Administrator\\)\\)\")"
+    ]
+  }
+}

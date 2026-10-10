@@ -21,9 +21,22 @@ create table if not exists progress (
   data jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
+-- Anonymous progress is owned by an unguessable, HTTP-only guest cookie.
+-- Only its SHA-256 hash is stored here; accounts continue to use progress.
+create table if not exists guest_sessions (
+  id uuid primary key default gen_random_uuid(),
+  token_hash text not null unique,
+  data jsonb not null default '{"v":1}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '90 days')
+);
+create index if not exists guest_sessions_expires_at on guest_sessions(expires_at);
+alter table users add column if not exists pending_guest_id uuid references guest_sessions(id) on delete set null;
 alter table users enable row level security;
 alter table email_tokens enable row level security;
 alter table progress enable row level security;
+alter table guest_sessions enable row level security;
 
 -- RAG knowledge (filled by ingest.py) and login/RAG throttling
 create table if not exists rag_chunks (

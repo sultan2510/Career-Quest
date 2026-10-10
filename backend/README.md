@@ -5,7 +5,9 @@
 In dev (no SMTP_HOST) verification and reset links are printed in the server console.
 
 ## Saved application data
-The API owns authentication and writes signed-in user data to `progress.data` in Postgres. `GET /progress` loads the saved document; `PUT /progress` validates and saves it. It includes the profiler, interests, Ikigai notes and country, roadmap, journal, recent mentor conversation, completed simulation evidence, and one resumable draft per career. The frontend sends each simulation decision immediately and waits for the save before continuing. Guest data remains in browser storage until account creation. No Supabase browser client or `auth.users` RLS policy is used: accounts are in the app's `users` table and the backend enforces ownership from its HTTP-only session cookie.
+The API owns authentication and writes account data to `progress.data` and anonymous guest data to `guest_sessions.data` in Postgres. `GET /progress` and `PUT /progress` use the same validated contract for both. It includes the profiler, interests, Ikigai notes and country, roadmap, journal, recent mentor conversation, completed simulation evidence, and one resumable draft per career. Each simulation decision is saved before advancing. Guest identity comes from a 90-day HTTP-only cookie; only its token hash is stored. Signup copies guest progress atomically, and verification transfers any changes made since signup in the same browser. The public Supabase REST API has no RLS policies for these tables; backend cookies and database queries enforce ownership.
+
+For an existing database, apply `migrations/002_guest_sessions.sql` before deploying this API. `schema.sql` already contains the guest table for new installs.
 
 ## RAG
 1. Re-run `schema.sql` (it adds `rag_chunks` and `rate_limits`; safe to run again).

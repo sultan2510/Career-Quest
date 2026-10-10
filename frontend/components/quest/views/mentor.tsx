@@ -12,7 +12,7 @@ export function MentorView() {
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (!user || user.guest) return <section className="sensei-panel"><h2>Sign in to chat with Yuki</h2><p>The mentor uses your account to keep answers private and personal. Log in or create an account from the menu.</p></section>;
+  if (!user) return null;
 
   const send = async (e: FormEvent) => {
     e.preventDefault();
